@@ -18,19 +18,16 @@ export default function DashboardPage() {
   // === FUNGSI FETCH TASKS ===
   const fetchTasks = async () => {
     try {
-      console.log('🔄 fetchTasks dimulai...');
       const response = await api.get('/my-tasks');
-      console.log('✅ Response diterima:', response);
       setTasks(response.data.data || []);
     } catch (error) {
-      console.error('❌ Error fetching tasks:', error);
+      console.error('Error fetching tasks:', error);
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         router.push('/login');
       }
     } finally {
-      console.log('🏁 Set loading ke false');
       setLoading(false);
     }
   };
@@ -90,16 +87,18 @@ export default function DashboardPage() {
 
   const proposedTasks = tasks.filter(task => task.status === 'proposed');
 
+  const submittedTasks = tasks.filter(task => task.status === 'submitted');
+
   const futureTasks = tasks.filter(task => {
     if (!task.deadline) return false;
-    if (task.status === 'completed' || task.status === 'proposed') return false;
+    if (task.status === 'completed' || task.status === 'proposed' || task.status === 'submitted') return false;
     const deadline = new Date(task.deadline);
     deadline.setHours(0, 0, 0, 0);
     return deadline.getTime() > threeDaysFromNow.getTime();
   });
 
   const otherTasks = tasks.filter(task => {
-    if (task.status === 'proposed' || task.status === 'completed') return false;
+    if (task.status === 'proposed' || task.status === 'completed' || task.status === 'submitted') return false;
     if (!task.deadline) return true;
     const deadline = new Date(task.deadline);
     deadline.setHours(0, 0, 0, 0);
@@ -114,6 +113,7 @@ export default function DashboardPage() {
     { id: 'approaching', label: '📋 Mendekati Deadline', count: approachingTasks.length, data: approachingTasks },
     { id: 'overdue', label: '⚠️ Terlambat', count: overdueTasks.length, data: overdueTasks },
     { id: 'proposed', label: '⏳ Menunggu Persetujuan', count: proposedTasks.length, data: proposedTasks },
+    { id: 'submitted', label: '⏳ Menunggu Penilaian', count: submittedTasks.length, data: submittedTasks },
     { id: 'future', label: '📅 Akan Datang', count: futureTasks.length, data: futureTasks },
     { id: 'other', label: '📂 Lainnya', count: otherTasks.length, data: otherTasks },
   ];
@@ -121,7 +121,6 @@ export default function DashboardPage() {
   // === USEFFECT (FETCH DATA & RESTORE TAB/SCROLL) ===
   useEffect(() => {
     const token = localStorage.getItem('token');
-    console.log('🔑 Token di localStorage:', token ? 'Ada' : 'Tidak ada');
     if (!token) {
       router.push('/login');
       return;
@@ -137,9 +136,7 @@ export default function DashboardPage() {
     // === RESTORE TAB & SCROLL POSITION ===
     if (typeof window !== 'undefined') {
       const savedTab = sessionStorage.getItem('activeTab');
-      console.log('savedTab dari sessionStorage:', savedTab);
       if (savedTab && tabs.some(tab => tab.id === savedTab)) {
-        console.log('Restore tab ke:', savedTab);
         setActiveTab(savedTab);
         sessionStorage.removeItem('activeTab');
       }
@@ -150,11 +147,7 @@ export default function DashboardPage() {
         sessionStorage.removeItem('scrollPosition');
         
         const doScroll = () => {
-          window.scrollTo({
-            top: scrollY,
-            behavior: 'instant'
-          });
-          console.log('✅ Scroll restored ke:', scrollY);
+          window.scrollTo({ top: scrollY, behavior: 'instant' });
         };
 
         doScroll();
@@ -290,10 +283,7 @@ export default function DashboardPage() {
             {/* Header */}
             <div className="flex justify-between items-center border-b pb-3 mb-4">
               <h2 className="text-xl font-bold text-gray-800">{selectedTask.judul_spesifik}</h2>
-              <button
-                onClick={closeModal}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
+              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-2xl">
                 ✕
               </button>
             </div>
@@ -307,46 +297,123 @@ export default function DashboardPage() {
               <p><strong>Periode:</strong> {selectedTask.recurrence_type || 'N/A'}</p>
               <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
 
-              {/* Catatan Harian */}
-              {selectedTask.catatan_harian && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                  <strong>📝 Catatan Harian:</strong>
-                  <p className="text-gray-700 mt-1">{selectedTask.catatan_harian}</p>
-                </div>
-              )}
+              {/* CATATAN HARIAN */}
+              <div className="mt-4">
+                <h4 className="font-semibold text-gray-700 mb-1">
+                  📝 Catatan Harian
+                  {(!selectedTask.subtasks || selectedTask.subtasks.length === 0) && (
+                    <span className="text-red-500 text-sm ml-1">* Wajib</span>
+                  )}
+                </h4>
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows="2"
+                  placeholder="Tulis catatan hasil kerja hari ini..."
+                  value={selectedTask.catatan_harian || ''}
+                  onChange={async (e) => {
+                    const value = e.target.value;
+                    setSelectedTask(prev => ({ ...prev, catatan_harian: value }));
+                    try {
+                      await api.put(`/tasks/${selectedTask.id}`, { catatan_harian: value });
+                    } catch (err) {
+                      console.error('Error saving catatan:', err);
+                    }
+                  }}
+                  disabled={selectedTask.status === 'submitted' || selectedTask.status === 'completed'}
+                />
+                <p className="text-xs text-gray-500 mt-1">💡 Catatan akan tersimpan otomatis.</p>
+              </div>
 
-              {/* Subtask */}
+              {/* SUBTASK CHECKLIST */}
               {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
-                <div>
-                  <strong>Checklist:</strong>
-                  <ul className="list-disc pl-5 mt-1">
-                    {selectedTask.subtasks.map((sub) => (
-                      <li key={sub.id} className={sub.is_done ? 'line-through text-gray-400' : ''}>
-                        {sub.judul}
+                <div className="mt-4">
+                  <h4 className="font-semibold text-gray-700 mb-1">✅ Checklist <span className="text-red-500 text-sm">* Wajib</span></h4>
+                  <ul className="space-y-1">
+                    {selectedTask.subtasks.map((subtask) => (
+                      <li key={subtask.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={subtask.is_done}
+                          onChange={async () => {
+                            try {
+                              await api.put(`/subtasks/${subtask.id}/toggle`);
+                              const updatedSubtasks = selectedTask.subtasks.map(s =>
+                                s.id === subtask.id ? { ...s, is_done: !s.is_done } : s
+                              );
+                              setSelectedTask(prev => ({
+                                ...prev,
+                                subtasks: updatedSubtasks,
+                                progress: Math.round((updatedSubtasks.filter(s => s.is_done).length / updatedSubtasks.length) * 100)
+                              }));
+                            } catch (err) {
+                              console.error('Error toggling subtask:', err);
+                            }
+                          }}
+                          className="w-4 h-4 text-blue-600"
+                          disabled={selectedTask.status === 'submitted' || selectedTask.status === 'completed'}
+                        />
+                        <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
+                          {subtask.judul}
+                        </span>
                       </li>
                     ))}
                   </ul>
+                  {selectedTask.subtasks.length > 0 && (
+                    <div className="mt-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all"
+                          style={{ width: `${selectedTask.progress || 0}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Progress: {selectedTask.progress || 0}%</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Aksi */}
-            <div className="border-t pt-4 mt-4 flex gap-3 flex-wrap">
-              {selectedTask.status === 'approved' && (
-                <button
-                  onClick={() => handleSubmit(selectedTask.id)}
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                >
-                  📤 Submit Tugas
-                </button>
-              )}
-              <button
-                onClick={closeModal}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-              >
-                Tutup
-              </button>
-            </div>
+            {/* SUBMIT CONDITION */}
+            {(() => {
+              const totalSubtasks = selectedTask.subtasks?.length || 0;
+              const doneSubtasks = selectedTask.subtasks?.filter(s => s.is_done).length || 0;
+              const allSubtasksDone = totalSubtasks === 0 || doneSubtasks === totalSubtasks;
+              const hasSubtask = totalSubtasks > 0;
+              const noteFilled = selectedTask.catatan_harian && selectedTask.catatan_harian.trim().length > 0;
+              const canSubmit = hasSubtask ? allSubtasksDone : allSubtasksDone && noteFilled;
+
+              return (
+                <div className="border-t pt-4 mt-4 flex gap-3 flex-wrap items-center">
+                  {selectedTask.status === 'approved' && (
+                    <>
+                      <button
+                        onClick={() => handleSubmit(selectedTask.id)}
+                        disabled={!canSubmit}
+                        className={`px-4 py-2 rounded transition ${
+                          canSubmit
+                            ? 'bg-green-600 text-white hover:bg-green-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        📤 Submit Tugas
+                      </button>
+                      {!canSubmit && (
+                        <p className="text-sm text-red-500">
+                          ⚠️ {!hasSubtask && !noteFilled
+                            ? 'Catatan harian wajib diisi.'
+                            : !allSubtasksDone
+                              ? 'Selesaikan semua checklist.'
+                              : ''}
+                        </p>
+                      )}
+                    </>
+                  )}
+                  <button onClick={closeModal} className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">
+                    Tutup
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
