@@ -51,13 +51,11 @@ export default function AtasanDashboard() {
 
   const handleApprove = async (taskId, status) => {
     try {
-      // Validasi reason jika menolak
       if (status === 'rejected' && !reason.trim()) {
         alert('Alasan penolakan wajib diisi!');
         return;
       }
 
-      // Validasi reason jika ada perubahan bobot/deadline
       const task = tasks.find(t => t.id === taskId);
       const hasChanges = 
         (editedBobot !== task?.bobot) || 
@@ -76,7 +74,6 @@ export default function AtasanDashboard() {
         reason: reason || (status === 'approved' ? 'Disetujui oleh atasan' : 'Ditolak oleh atasan')
       });
       
-      // Reset modal
       setIsModalOpen(false);
       setSelectedTask(null);
       setReason('');
@@ -97,6 +94,7 @@ export default function AtasanDashboard() {
       fetchTasks();
     } catch (error) {
       console.error('Error scoring task:', error);
+      alert('Gagal memberi nilai.');
     }
   };
 
@@ -106,7 +104,6 @@ export default function AtasanDashboard() {
     router.push('/login');
   };
 
-  // === FUNGSI BUKA MODAL ===
   const openModal = (task) => {
     setSelectedTask(task);
     setEditedBobot(task.bobot || 3);
@@ -115,7 +112,6 @@ export default function AtasanDashboard() {
     setIsModalOpen(true);
   };
 
-  // === FUNGSI TUTUP MODAL ===
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedTask(null);
@@ -238,14 +234,29 @@ export default function AtasanDashboard() {
                     </button>
                     {task.status === 'submitted' && (
                       <button
-                        onClick={() => {
-                          const nilai = prompt('Masukkan nilai (0-100):', '85');
-                          if (nilai !== null) {
-                            const reason = prompt('Alasan (opsional):', '');
-                            handleNilai(task.id, parseInt(nilai), reason || '');
+                        onClick={async () => {
+                          const nilaiInput = prompt('Masukkan nilai (0-100):', '100');
+                          if (nilaiInput === null) return;
+                          
+                          const nilai = parseInt(nilaiInput);
+                          if (isNaN(nilai) || nilai < 0 || nilai > 100) {
+                            alert('Nilai harus antara 0-100.');
+                            return;
                           }
+                          
+                          let reason = '';
+                          if (nilai < 100) {
+                            reason = prompt('Alasan penurunan nilai (wajib):', '');
+                            if (reason === null) return;
+                            if (reason.trim() === '') {
+                              alert('Alasan wajib diisi jika nilai di bawah 100.');
+                              return;
+                            }
+                          }
+                          
+                          await handleNilai(task.id, nilai, reason || 'Nilai default 100');
                         }}
-                        className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition"
+                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition"
                       >
                         Beri Nilai
                       </button>
@@ -282,58 +293,53 @@ export default function AtasanDashboard() {
               <p><strong>Jenis:</strong> {selectedTask.jenis || 'N/A'}</p>
               <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
 
-              {/* Subtask */}
+              {/* ===== SUBTASK LIST ===== */}
               {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
-                <div>
-                  <strong>Subtask:</strong>
-                  <ul className="list-disc pl-5 mt-1">
-                    {selectedTask.subtasks.map((sub) => (
-                      <li key={sub.id} className={sub.is_done ? 'line-through text-gray-400' : ''}>
-                        {sub.judul}
+                <div className="mt-3">
+                  <h4 className="font-semibold text-gray-700 mb-1">📋 Subtask</h4>
+                  <ul className="space-y-1">
+                    {selectedTask.subtasks.map((subtask) => (
+                      <li key={subtask.id} className="flex items-center gap-2">
+                        <span className={`text-sm ${
+                          subtask.is_done ? 'text-green-600' : 'text-red-500'
+                        }`}>
+                          {subtask.is_done ? '✅' : '⬜'}
+                        </span>
+                        <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
+                          {subtask.judul}
+                        </span>
                       </li>
                     ))}
                   </ul>
+                  {/* Progress */}
+                  {selectedTask.subtasks.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Progress: {selectedTask.progress || 0}% ({selectedTask.subtasks.filter(s => s.is_done).length}/{selectedTask.subtasks.length})
+                    </p>
+                  )}
                 </div>
               )}
 
-              {/* Form Edit (hanya untuk status proposed) */}
-              {selectedTask.status === 'proposed' && (
-                <div className="border-t pt-4 mt-4">
-                  <h4 className="font-semibold mb-2">✏️ Edit Usulan (Opsional)</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Bobot</label>
-                      <input
-                        type="number"
-                        value={editedBobot}
-                        onChange={(e) => setEditedBobot(parseInt(e.target.value))}
-                        min="1"
-                        max="10"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Deadline</label>
-                      <input
-                        type="date"
-                        value={editedDeadline}
-                        onChange={(e) => setEditedDeadline(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Alasan Perubahan <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      placeholder="Wajib diisi jika ada perubahan atau menolak..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      rows="2"
-                    />
-                  </div>
+              {/* ===== CATATAN HARIAN (untuk submitted & completed) ===== */}
+              {(selectedTask.status === 'submitted' || selectedTask.status === 'completed') && (
+                <div className="mt-3 p-3 bg-blue-50 rounded-md border border-blue-200">
+                  <h4 className="font-semibold text-blue-700 mb-1">📝 Catatan Harian (Staf)</h4>
+                  {selectedTask.catatan_harian ? (
+                    <p className="text-gray-700 whitespace-pre-wrap">{selectedTask.catatan_harian}</p>
+                  ) : (
+                    <p className="text-gray-400 italic">Staf belum mengisi catatan harian.</p>
+                  )}
+                </div>
+              )}
+
+              {/* ===== SKOR AKHIR (untuk completed) ===== */}
+              {selectedTask.status === 'completed' && (
+                <div className="mt-3 p-3 bg-green-50 rounded-md border border-green-200">
+                  <h4 className="font-semibold text-green-700 mb-1">🏆 Skor Akhir</h4>
+                  <p className="text-2xl font-bold text-green-600">{selectedTask.skor_akhir}</p>
+                  <p className="text-sm text-gray-500">
+                    Bobot: {selectedTask.bobot} × Nilai: {selectedTask.nilai} × Faktor Waktu: {selectedTask.faktor_waktu}
+                  </p>
                 </div>
               )}
             </div>
@@ -360,13 +366,28 @@ export default function AtasanDashboard() {
               )}
               {selectedTask.status === 'submitted' && (
                 <button
-                  onClick={() => {
-                    const nilai = prompt('Masukkan nilai (0-100):', '85');
-                    if (nilai !== null) {
-                      const reason = prompt('Alasan (opsional):', '');
-                      handleNilai(selectedTask.id, parseInt(nilai), reason || '');
-                      closeModal();
+                  onClick={async () => {
+                    const nilaiInput = prompt('Masukkan nilai (0-100):', '100');
+                    if (nilaiInput === null) return;
+                    
+                    const nilai = parseInt(nilaiInput);
+                    if (isNaN(nilai) || nilai < 0 || nilai > 100) {
+                      alert('Nilai harus antara 0-100.');
+                      return;
                     }
+                    
+                    let reason = '';
+                    if (nilai < 100) {
+                      reason = prompt('Alasan penurunan nilai (wajib):', '');
+                      if (reason === null) return;
+                      if (reason.trim() === '') {
+                        alert('Alasan wajib diisi jika nilai di bawah 100.');
+                        return;
+                      }
+                    }
+                    
+                    await handleNilai(selectedTask.id, nilai, reason || 'Nilai default 100');
+                    closeModal();
                   }}
                   className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
