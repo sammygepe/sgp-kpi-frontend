@@ -9,64 +9,69 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('approaching');
+  
+  // === STATE MODAL ===
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-
-    fetchTasks();
-  }, []);
-
+  // === FUNGSI FETCH TASKS ===
   const fetchTasks = async () => {
     try {
+      console.log('🔄 fetchTasks dimulai...');
       const response = await api.get('/my-tasks');
+      console.log('✅ Response diterima:', response);
       setTasks(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      console.error('❌ Error fetching tasks:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/login');
+      }
     } finally {
+      console.log('🏁 Set loading ke false');
       setLoading(false);
     }
   };
 
+  // === HANDLE SUBMIT ===
   const handleSubmit = async (taskId) => {
     try {
       await api.post(`/tasks/${taskId}/submit`);
       fetchTasks();
+      closeModal();
     } catch (error) {
       console.error('Error submitting task:', error);
     }
   };
 
+  // === HANDLE LOGOUT ===
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     router.push('/login');
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
-  }
+  // === FUNGSI BUKA MODAL ===
+  const openModal = (task) => {
+    setSelectedTask(task);
+    setIsModalOpen(true);
+  };
 
-  // === FUNGSI FILTER ===
+  // === FUNGSI TUTUP MODAL ===
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedTask(null);
+  };
+
+  // === FUNGSI FILTER TUGAS ===
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const threeDaysFromNow = new Date(today);
   threeDaysFromNow.setDate(today.getDate() + 3);
 
-  // 1. Mendekati Deadline (hari ini + 1-3 hari ke depan)
   const approachingTasks = tasks.filter(task => {
     if (!task.deadline) return false;
     if (task.status === 'completed' || task.status === 'proposed') return false;
@@ -75,7 +80,6 @@ export default function DashboardPage() {
     return deadline.getTime() >= today.getTime() && deadline.getTime() <= threeDaysFromNow.getTime();
   });
 
-  // 2. Terlambat (Overdue)
   const overdueTasks = tasks.filter(task => {
     if (!task.deadline) return false;
     if (task.status === 'completed' || task.status === 'proposed') return false;
@@ -84,10 +88,8 @@ export default function DashboardPage() {
     return deadline.getTime() < today.getTime();
   });
 
-  // 3. Menunggu Persetujuan
   const proposedTasks = tasks.filter(task => task.status === 'proposed');
 
-  // 4. Akan Datang (deadline > 3 hari ke depan)
   const futureTasks = tasks.filter(task => {
     if (!task.deadline) return false;
     if (task.status === 'completed' || task.status === 'proposed') return false;
@@ -96,7 +98,6 @@ export default function DashboardPage() {
     return deadline.getTime() > threeDaysFromNow.getTime();
   });
 
-  // Tugas lainnya (approved, submitted, on_progress) yang tidak masuk kategori
   const otherTasks = tasks.filter(task => {
     if (task.status === 'proposed' || task.status === 'completed') return false;
     if (!task.deadline) return true;
@@ -108,6 +109,88 @@ export default function DashboardPage() {
     return !isApproaching && !isOverdue && !isFuture;
   });
 
+  // === DATA UNTUK TAB ===
+  const tabs = [
+    { id: 'approaching', label: '📋 Mendekati Deadline', count: approachingTasks.length, data: approachingTasks },
+    { id: 'overdue', label: '⚠️ Terlambat', count: overdueTasks.length, data: overdueTasks },
+    { id: 'proposed', label: '⏳ Menunggu Persetujuan', count: proposedTasks.length, data: proposedTasks },
+    { id: 'future', label: '📅 Akan Datang', count: futureTasks.length, data: futureTasks },
+    { id: 'other', label: '📂 Lainnya', count: otherTasks.length, data: otherTasks },
+  ];
+
+  // === USEFFECT (FETCH DATA & RESTORE TAB/SCROLL) ===
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    console.log('🔑 Token di localStorage:', token ? 'Ada' : 'Tidak ada');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+
+    fetchTasks();
+
+    // === RESTORE TAB & SCROLL POSITION ===
+    if (typeof window !== 'undefined') {
+      const savedTab = sessionStorage.getItem('activeTab');
+      console.log('savedTab dari sessionStorage:', savedTab);
+      if (savedTab && tabs.some(tab => tab.id === savedTab)) {
+        console.log('Restore tab ke:', savedTab);
+        setActiveTab(savedTab);
+        sessionStorage.removeItem('activeTab');
+      }
+
+      const savedScroll = sessionStorage.getItem('scrollPosition');
+      if (savedScroll) {
+        const scrollY = parseInt(savedScroll);
+        sessionStorage.removeItem('scrollPosition');
+        
+        const doScroll = () => {
+          window.scrollTo({
+            top: scrollY,
+            behavior: 'instant'
+          });
+          console.log('✅ Scroll restored ke:', scrollY);
+        };
+
+        doScroll();
+        [100, 300, 500, 1000].forEach(delay => {
+          setTimeout(doScroll, delay);
+        });
+        requestAnimationFrame(() => {
+          setTimeout(doScroll, 50);
+        });
+      }
+    }
+  }, []);
+
+  // === LOADING ===
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  // === GET STATUS COLOR ===
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'proposed': return 'text-yellow-600';
+      case 'approved': return 'text-blue-600';
+      case 'submitted': return 'text-purple-600';
+      case 'completed': return 'text-green-600';
+      default: return 'text-gray-600';
+    }
+  };
+
+  const activeData = tabs.find(tab => tab.id === activeTab)?.data || [];
+
+  // === RENDER ===
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
@@ -128,7 +211,7 @@ export default function DashboardPage() {
 
       <div className="container mx-auto p-4">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-800">Dashboard Staf</h2>
           <button
             onClick={() => router.push('/tasks/propose')}
@@ -142,137 +225,131 @@ export default function DashboardPage() {
           Selamat datang, {user?.name || 'User'}!
         </p>
 
-        {/* === SECTION 1: MENDekati DEADLINE === */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            📋 Mendekati Deadline
-            <span className="bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded-full">{approachingTasks.length}</span>
-          </h3>
-          {approachingTasks.length === 0 ? (
-            <p className="text-gray-500 text-sm">Tidak ada tugas yang mendekati deadline.</p>
-          ) : (
-            <div className="space-y-3">
-              {approachingTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onDetail={() => router.push(`/tasks/${task.id}`)} onSubmit={handleSubmit} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* === SECTION 2: TERLAMBAT (OVERDUE) === */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            ⚠️ Terlambat (Overdue)
-            <span className="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded-full">{overdueTasks.length}</span>
-          </h3>
-          {overdueTasks.length === 0 ? (
-            <p className="text-gray-500 text-sm">Tidak ada tugas yang terlambat.</p>
-          ) : (
-            <div className="space-y-3">
-              {overdueTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onDetail={() => router.push(`/tasks/${task.id}`)} onSubmit={handleSubmit} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* === SECTION 3: MENUNGGU PERSETUJUAN === */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            ⏳ Menunggu Persetujuan
-            <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full">{proposedTasks.length}</span>
-          </h3>
-          {proposedTasks.length === 0 ? (
-            <p className="text-gray-500 text-sm">Tidak ada usulan menunggu persetujuan.</p>
-          ) : (
-            <div className="space-y-3">
-              {proposedTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onDetail={() => router.push(`/tasks/${task.id}`)} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* === SECTION 4: AKAN DATANG === */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            📅 Akan Datang
-            <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">{futureTasks.length}</span>
-          </h3>
-          {futureTasks.length === 0 ? (
-            <p className="text-gray-500 text-sm">Tidak ada tugas yang akan datang.</p>
-          ) : (
-            <div className="space-y-3">
-              {futureTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onDetail={() => router.push(`/tasks/${task.id}`)} onSubmit={handleSubmit} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* === SECTION 5: TUGAS LAINNYA === */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            📂 Tugas Lainnya
-            <span className="bg-gray-100 text-gray-800 text-xs px-2 py-0.5 rounded-full">{otherTasks.length}</span>
-          </h3>
-          {otherTasks.length === 0 ? (
-            <p className="text-gray-500 text-sm">Tidak ada tugas lain.</p>
-          ) : (
-            <div className="space-y-3">
-              {otherTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onDetail={() => router.push(`/tasks/${task.id}`)} onSubmit={handleSubmit} />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// === KOMPONEN TASK CARD ===
-function TaskCard({ task, onDetail, onSubmit }) {
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'proposed': return 'text-yellow-600';
-      case 'approved': return 'text-blue-600';
-      case 'submitted': return 'text-purple-600';
-      case 'completed': return 'text-green-600';
-      default: return 'text-gray-600';
-    }
-  };
-
-  return (
-    <div className="border p-4 rounded-lg shadow-sm bg-white">
-      <div className="flex justify-between items-start">
-        <div className="flex-1 cursor-pointer" onClick={onDetail}>
-          <h4 className="font-semibold text-gray-800 hover:text-blue-600 transition">{task.judul_spesifik}</h4>
-          <p className="text-sm text-gray-600">
-            Status: <span className={`font-medium ${getStatusColor(task.status)}`}>{task.status}</span>
-          </p>
-          <p className="text-sm text-gray-600">
-            Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString('id-ID') : 'N/A'}
-          </p>
-          {task.bobot && <p className="text-sm text-gray-600">Bobot: {task.bobot}</p>}
-        </div>
-        <div className="flex gap-2 flex-wrap ml-4">
-          <button
-            onClick={onDetail}
-            className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition"
-          >
-            Detail
-          </button>
-          {task.status === 'approved' && (
+        {/* Tab Navigation */}
+        <div className="flex gap-2 mb-6 flex-wrap border-b border-gray-200 pb-2">
+          {tabs.map((tab) => (
             <button
-              onClick={() => onSubmit(task.id)}
-              className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition text-sm"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-t-lg text-sm font-medium transition ${
+                activeTab === tab.id
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
             >
-              Submit
+              {tab.label} ({tab.count})
             </button>
-          )}
+          ))}
         </div>
+
+        {/* Task List */}
+        {activeData.length === 0 ? (
+          <p className="text-gray-500 text-sm">Tidak ada tugas di kategori ini.</p>
+        ) : (
+          <div className="space-y-3">
+            {activeData.map((task) => (
+              <div key={task.id} className="border p-4 rounded-lg shadow-sm bg-white">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-800">{task.judul_spesifik}</h4>
+                    <p className="text-sm text-gray-600">
+                      Status: <span className={`font-medium ${getStatusColor(task.status)}`}>{task.status}</span>
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString('id-ID') : 'N/A'}
+                    </p>
+                    {task.bobot && <p className="text-sm text-gray-600">Bobot: {task.bobot}</p>}
+                  </div>
+                  <div className="flex gap-2 flex-wrap ml-4">
+                    <button
+                      onClick={() => openModal(task)}
+                      className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition"
+                    >
+                      Detail
+                    </button>
+                    {task.status === 'approved' && (
+                      <button
+                        onClick={() => handleSubmit(task.id)}
+                        className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition text-sm"
+                      >
+                        Submit
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* ===== MODAL DETAIL TUGAS ===== */}
+      {isModalOpen && selectedTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center border-b pb-3 mb-4">
+              <h2 className="text-xl font-bold text-gray-800">{selectedTask.judul_spesifik}</h2>
+              <button
+                onClick={closeModal}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="space-y-3">
+              <p><strong>Status:</strong> {selectedTask.status}</p>
+              <p><strong>Deadline:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString('id-ID') : 'N/A'}</p>
+              <p><strong>Bobot:</strong> {selectedTask.bobot}</p>
+              <p><strong>Jenis:</strong> {selectedTask.jenis || 'N/A'}</p>
+              <p><strong>Periode:</strong> {selectedTask.recurrence_type || 'N/A'}</p>
+              <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
+
+              {/* Catatan Harian */}
+              {selectedTask.catatan_harian && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                  <strong>📝 Catatan Harian:</strong>
+                  <p className="text-gray-700 mt-1">{selectedTask.catatan_harian}</p>
+                </div>
+              )}
+
+              {/* Subtask */}
+              {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
+                <div>
+                  <strong>Checklist:</strong>
+                  <ul className="list-disc pl-5 mt-1">
+                    {selectedTask.subtasks.map((sub) => (
+                      <li key={sub.id} className={sub.is_done ? 'line-through text-gray-400' : ''}>
+                        {sub.judul}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Aksi */}
+            <div className="border-t pt-4 mt-4 flex gap-3 flex-wrap">
+              {selectedTask.status === 'approved' && (
+                <button
+                  onClick={() => handleSubmit(selectedTask.id)}
+                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                >
+                  📤 Submit Tugas
+                </button>
+              )}
+              <button
+                onClick={closeModal}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

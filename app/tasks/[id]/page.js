@@ -70,8 +70,19 @@ export default function TaskDetailPage() {
       {/* Navbar */}
       <nav className="bg-white shadow-md px-4 py-3 flex justify-between items-center">
         <h1 className="text-xl font-bold text-gray-800">SGP KPI System</h1>
+        
         <button
-          onClick={() => router.back()}
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('scrollPosition', window.scrollY.toString());
+            }
+            // Cek apakah ada halaman sebelumnya
+            if (document.referrer && document.referrer.includes(window.location.host)) {
+              router.back();
+            } else {
+              router.push('/dashboard');
+            }
+          }}
           className="text-gray-600 hover:text-gray-800 transition"
         >
           ← Kembali

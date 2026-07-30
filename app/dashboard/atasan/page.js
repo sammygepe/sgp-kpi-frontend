@@ -10,6 +10,14 @@ export default function AtasanDashboard() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [filter, setFilter] = useState('all');
+  
+  // === STATE MODAL ===
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editedBobot, setEditedBobot] = useState(3);
+  const [editedDeadline, setEditedDeadline] = useState('');
+  const [reason, setReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -43,13 +51,43 @@ export default function AtasanDashboard() {
 
   const handleApprove = async (taskId, status) => {
     try {
+      // Validasi reason jika menolak
+      if (status === 'rejected' && !reason.trim()) {
+        alert('Alasan penolakan wajib diisi!');
+        return;
+      }
+
+      // Validasi reason jika ada perubahan bobot/deadline
+      const task = tasks.find(t => t.id === taskId);
+      const hasChanges = 
+        (editedBobot !== task?.bobot) || 
+        (editedDeadline && editedDeadline !== task?.deadline?.split('T')[0]);
+
+      if (hasChanges && !reason.trim()) {
+        alert('Alasan perubahan wajib diisi!');
+        return;
+      }
+
+      setIsSubmitting(true);
       await api.put(`/tasks/${taskId}/approve`, {
         status: status,
-        reason: status === 'approved' ? 'Disetujui oleh atasan' : 'Ditolak oleh atasan'
+        bobot: editedBobot,
+        deadline: editedDeadline || undefined,
+        reason: reason || (status === 'approved' ? 'Disetujui oleh atasan' : 'Ditolak oleh atasan')
       });
+      
+      // Reset modal
+      setIsModalOpen(false);
+      setSelectedTask(null);
+      setReason('');
+      setEditedBobot(3);
+      setEditedDeadline('');
       fetchTasks();
     } catch (error) {
       console.error('Error approving task:', error);
+      alert('Gagal memproses tugas');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -66,6 +104,24 @@ export default function AtasanDashboard() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     router.push('/login');
+  };
+
+  // === FUNGSI BUKA MODAL ===
+  const openModal = (task) => {
+    setSelectedTask(task);
+    setEditedBobot(task.bobot || 3);
+    setEditedDeadline(task.deadline ? task.deadline.split('T')[0] : '');
+    setReason('');
+    setIsModalOpen(true);
+  };
+
+  // === FUNGSI TUTUP MODAL ===
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedTask(null);
+    setReason('');
+    setEditedBobot(3);
+    setEditedDeadline('');
   };
 
   if (loading) {
@@ -174,22 +230,12 @@ export default function AtasanDashboard() {
                     )}
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    {task.status === 'proposed' && (
-                      <>
-                        <button
-                          onClick={() => handleApprove(task.id, 'approved')}
-                          className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition"
-                        >
-                          Setujui
-                        </button>
-                        <button
-                          onClick={() => handleApprove(task.id, 'rejected')}
-                          className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition"
-                        >
-                          Tolak
-                        </button>
-                      </>
-                    )}
+                    <button
+                      onClick={() => openModal(task)}
+                      className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition"
+                    >
+                      Detail
+                    </button>
                     {task.status === 'submitted' && (
                       <button
                         onClick={() => {
@@ -199,7 +245,7 @@ export default function AtasanDashboard() {
                             handleNilai(task.id, parseInt(nilai), reason || '');
                           }
                         }}
-                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition"
+                        className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition"
                       >
                         Beri Nilai
                       </button>
@@ -211,6 +257,133 @@ export default function AtasanDashboard() {
           </div>
         )}
       </div>
+
+      {/* ===== MODAL DETAIL TUGAS ===== */}
+      {isModalOpen && selectedTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center border-b pb-3 mb-4">
+              <h2 className="text-xl font-bold text-gray-800">{selectedTask.judul_spesifik}</h2>
+              <button
+                onClick={closeModal}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+                disabled={isSubmitting}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="space-y-3">
+              <p><strong>Status:</strong> {selectedTask.status}</p>
+              <p><strong>Deadline:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString('id-ID') : 'N/A'}</p>
+              <p><strong>Bobot:</strong> {selectedTask.bobot}</p>
+              <p><strong>Jenis:</strong> {selectedTask.jenis || 'N/A'}</p>
+              <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
+
+              {/* Subtask */}
+              {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
+                <div>
+                  <strong>Subtask:</strong>
+                  <ul className="list-disc pl-5 mt-1">
+                    {selectedTask.subtasks.map((sub) => (
+                      <li key={sub.id} className={sub.is_done ? 'line-through text-gray-400' : ''}>
+                        {sub.judul}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Form Edit (hanya untuk status proposed) */}
+              {selectedTask.status === 'proposed' && (
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-semibold mb-2">✏️ Edit Usulan (Opsional)</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Bobot</label>
+                      <input
+                        type="number"
+                        value={editedBobot}
+                        onChange={(e) => setEditedBobot(parseInt(e.target.value))}
+                        min="1"
+                        max="10"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Deadline</label>
+                      <input
+                        type="date"
+                        value={editedDeadline}
+                        onChange={(e) => setEditedDeadline(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Alasan Perubahan <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder="Wajib diisi jika ada perubahan atau menolak..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows="2"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Aksi */}
+            <div className="border-t pt-4 mt-4 flex gap-3 flex-wrap">
+              {selectedTask.status === 'proposed' && (
+                <>
+                  <button
+                    onClick={() => handleApprove(selectedTask.id, 'approved')}
+                    disabled={isSubmitting}
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Memproses...' : '✅ Setujui'}
+                  </button>
+                  <button
+                    onClick={() => handleApprove(selectedTask.id, 'rejected')}
+                    disabled={isSubmitting}
+                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Memproses...' : '❌ Tolak'}
+                  </button>
+                </>
+              )}
+              {selectedTask.status === 'submitted' && (
+                <button
+                  onClick={() => {
+                    const nilai = prompt('Masukkan nilai (0-100):', '85');
+                    if (nilai !== null) {
+                      const reason = prompt('Alasan (opsional):', '');
+                      handleNilai(selectedTask.id, parseInt(nilai), reason || '');
+                      closeModal();
+                    }
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                >
+                  ⭐ Beri Nilai
+                </button>
+              )}
+              <button
+                onClick={closeModal}
+                disabled={isSubmitting}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 disabled:opacity-50"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
