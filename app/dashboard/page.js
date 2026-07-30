@@ -245,6 +245,9 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-800">{task.judul_spesifik}</h4>
+                    <p className="text-xs text-gray-500">
+                      {task.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'}
+                    </p>
                     <p className="text-sm text-gray-600">
                       Status: <span className={`font-medium ${getStatusColor(task.status)}`}>{task.status}</span>
                     </p>
@@ -290,10 +293,10 @@ export default function DashboardPage() {
 
             {/* Body */}
             <div className="space-y-3">
+              <p><strong>Jenis:</strong> {selectedTask.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'}</p>
               <p><strong>Status:</strong> {selectedTask.status}</p>
               <p><strong>Deadline:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString('id-ID') : 'N/A'}</p>
               <p><strong>Bobot:</strong> {selectedTask.bobot}</p>
-              <p><strong>Jenis:</strong> {selectedTask.jenis || 'N/A'}</p>
               <p><strong>Periode:</strong> {selectedTask.recurrence_type || 'N/A'}</p>
               <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
 
