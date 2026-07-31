@@ -311,6 +311,19 @@ export default function ProposeTaskPage() {
             </div>
           )}
 
+          {form.jenis === 'proyek' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Tanggal Mulai</label>
+              <input
+                type="date"
+                name="tanggal_mulai"
+                value={form.tanggal_mulai || ''}
+                onChange={handleChange}
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
+
           {/* Subtasks */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Subtask (Checklist)</label>
