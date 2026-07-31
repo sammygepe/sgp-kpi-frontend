@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import Navbar from '@/components/Navbar';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -189,6 +190,7 @@ export default function DashboardPage() {
       {/* Navbar */}
       <nav className="bg-white shadow-md px-4 py-3 flex justify-between items-center">
         <h1 className="text-xl font-bold text-gray-800">SGP KPI System</h1>
+        <Navbar user={user} onLogout={handleLogout} />
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-600">
             {user?.name} ({user?.role})
