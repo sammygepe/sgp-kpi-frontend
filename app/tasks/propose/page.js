@@ -139,39 +139,39 @@ export default function ProposeTaskPage() {
             />
           </div>
 
-            {/* Jenis Tugas */}
-            <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Tugas</label>
-            <div className="flex gap-4">
-                <label className="flex items-center gap-2">
-                <input
-                    type="radio"
-                    name="jenis"
-                    value="rutin"
-                    checked={form.jenis === 'rutin'}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-blue-600"
-                />
-                <span className="text-sm">Rutin (Berulang)</span>
-                </label>
-                <label className="flex items-center gap-2">
-                <input
-                    type="radio"
-                    name="jenis"
-                    value="proyek"
-                    checked={form.jenis === 'proyek'}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-blue-600"
-                />
-                <span className="text-sm">Proyek (Sekali)</span>
-                </label>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-                {form.jenis === 'rutin' 
-                ? 'Tugas yang dikerjakan berulang (harian/mingguan/bulanan).' 
-                : 'Tugas yang dikerjakan satu kali dengan durasi panjang.'}
-            </p>
-            </div>
+          {/* Jenis Tugas */}
+          <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Tugas</label>
+          <div className="flex gap-4">
+              <label className="flex items-center gap-2">
+              <input
+                  type="radio"
+                  name="jenis"
+                  value="rutin"
+                  checked={form.jenis === 'rutin'}
+                  onChange={handleChange}
+                  className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-sm">Rutin (Berulang)</span>
+              </label>
+              <label className="flex items-center gap-2">
+              <input
+                  type="radio"
+                  name="jenis"
+                  value="proyek"
+                  checked={form.jenis === 'proyek'}
+                  onChange={handleChange}
+                  className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-sm">Proyek (Sekali)</span>
+              </label>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+              {form.jenis === 'rutin' 
+              ? 'Tugas yang dikerjakan berulang (harian/mingguan/bulanan).' 
+              : 'Tugas yang dikerjakan satu kali dengan durasi panjang.'}
+          </p>
+          </div>
 
           {/* Periode Rutin (hanya jika jenis = rutin) */}
           {form.jenis === 'rutin' && (
@@ -219,34 +219,6 @@ export default function ProposeTaskPage() {
               </div>
             </>
           )}
-
-          {/* Bobot & Deadline */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Bobot (1-10)</label>
-              <input
-                type="number"
-                name="bobot"
-                value={form.bobot}
-                onChange={handleChange}
-                min="1"
-                max="10"
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Deadline *</label>
-              <input
-                type="date"
-                name="deadline"
-                value={form.deadline}
-                onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-          </div>
 
           {/* Field tambahan untuk mingguan, bulanan, tahunan */}
           {form.jenis === 'rutin' && form.recurrence_type === 'weekly' && (
@@ -323,6 +295,34 @@ export default function ProposeTaskPage() {
               />
             </div>
           )}
+
+          {/* Bobot & Deadline */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Bobot (1-10)</label>
+              <input
+                type="number"
+                name="bobot"
+                value={form.bobot}
+                onChange={handleChange}
+                min="1"
+                max="10"
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Deadline *</label>
+              <input
+                type="date"
+                name="deadline"
+                value={form.deadline}
+                onChange={handleChange}
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+          </div>
 
           {/* Subtasks */}
           <div>
