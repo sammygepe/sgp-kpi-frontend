@@ -430,8 +430,23 @@ export default function AtasanDashboard() {
                   >
                     {isSubmitting ? 'Memproses...' : '✅ Setujui'}
                   </button>
+                  
                   <button
-                    onClick={() => handleApprove(selectedTask.id, 'rejected')}
+                    onClick={async () => {
+                      // 1. Minta alasan penolakan
+                      const reasonInput = prompt('Alasan penolakan (wajib):', '');
+                      if (reasonInput === null) return; // Batal
+                      if (reasonInput.trim() === '') {
+                        alert('Alasan penolakan wajib diisi!');
+                        return;
+                      }
+                      
+                      // 2. Set reason ke state
+                      setReason(reasonInput);
+                      
+                      // 3. Proses penolakan
+                      await handleApprove(selectedTask.id, 'rejected');
+                    }}
                     disabled={isSubmitting}
                     className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
                   >
