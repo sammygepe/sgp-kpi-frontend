@@ -174,7 +174,18 @@ export default function AtasanDashboard() {
       <Navbar user={user} onLogout={handleLogout} />
 
       <div className="container mx-auto p-4">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Dashboard Atasan</h2>
+        {/* ===== HEADER DENGAN TOMBOL LAPORAN ===== */}
+        <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
+          <h2 className="text-2xl font-bold text-gray-800">Dashboard Atasan</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push('/reports')}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm"
+            >
+              📊 Laporan KPI
+            </button>
+          </div>
+        </div>
 
         {/* Filter Tabs */}
         <div className="flex gap-2 mb-6 flex-wrap">
@@ -326,11 +337,15 @@ export default function AtasanDashboard() {
             {/* Body - dengan guard */}
             {selectedTask && (
               <div className="space-y-3">
-                <p><strong>Jenis:</strong> {selectedTask.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'}</p>
-                <p><strong>Status:</strong> {selectedTask.status}</p>
-                <p><strong>Deadline:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString('id-ID') : 'N/A'}</p>
-                <p><strong>Bobot:</strong> {selectedTask.bobot}</p>
-                <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
+                {/* ===== INFO TUGAS (2 KOLOM) ===== */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                  <p><strong>Staf:</strong> {selectedTask.assignee?.name || 'N/A'}</p>
+                  <p><strong>Jenis:</strong> {selectedTask.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'}</p>
+                  <p><strong>Status:</strong> {selectedTask.status}</p>
+                  <p><strong>Deadline:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString('id-ID') : 'N/A'}</p>
+                  <p><strong>Bobot:</strong> {selectedTask.bobot}</p>
+                  <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
+                </div>
 
                 {/* Subtask */}
                 {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
