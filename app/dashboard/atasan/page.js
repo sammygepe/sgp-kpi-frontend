@@ -171,21 +171,7 @@ export default function AtasanDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
-      <nav className="bg-white shadow-md px-4 py-3 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-gray-800">SGP KPI System</h1>
-        <Navbar user={user} onLogout={handleLogout} />
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600">
-            {user?.name} ({user?.role})
-          </span>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition"
-          >
-            Logout
-          </button>
-        </div>
-      </nav>
+      <Navbar user={user} onLogout={handleLogout} />
 
       <div className="container mx-auto p-4">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Dashboard Atasan</h2>
