@@ -273,7 +273,7 @@ export default function AtasanDashboard() {
                       Detail
                     </button>
 
-                      {selectedTask.status === 'submitted' && (
+                      {selectedTask && selectedTask.status === 'submitted' && (
                         <button
                           onClick={async () => {
                             const nilaiInput = prompt('Masukkan nilai (0-100):', '100');
@@ -332,115 +332,110 @@ export default function AtasanDashboard() {
             {/* Header */}
             <div className="flex justify-between items-center border-b pb-3 mb-4">
               <h2 className="text-xl font-bold text-gray-800">{selectedTask.judul_spesifik}</h2>
-              <button
-                onClick={closeModal}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-                disabled={isSubmitting}
-              >
+              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-2xl" disabled={isSubmitting}>
                 ✕
               </button>
             </div>
 
-            {/* Body */}
-            <div className="space-y-3">
-              <p><strong>Jenis:</strong> {selectedTask.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'}</p>
-              <p><strong>Status:</strong> {selectedTask.status}</p>
-              <p><strong>Deadline:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString('id-ID') : 'N/A'}</p>
-              <p><strong>Bobot:</strong> {selectedTask.bobot}</p>
-              <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
+            {/* Body - dengan guard */}
+            {selectedTask && (
+              <div className="space-y-3">
+                <p><strong>Jenis:</strong> {selectedTask.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'}</p>
+                <p><strong>Status:</strong> {selectedTask.status}</p>
+                <p><strong>Deadline:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString('id-ID') : 'N/A'}</p>
+                <p><strong>Bobot:</strong> {selectedTask.bobot}</p>
+                <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
 
-              {/* ===== SUBTASK LIST ===== */}
-              {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
-                <div className="mt-3">
-                  <h4 className="font-semibold text-gray-700 mb-1">📋 Subtask</h4>
-                  <ul className="space-y-1">
-                    {selectedTask.subtasks.map((subtask) => (
-                      <li key={subtask.id} className="flex items-center gap-2">
-                        <span className={`text-sm ${
-                          subtask.is_done ? 'text-green-600' : 'text-red-500'
-                        }`}>
-                          {subtask.is_done ? '✅' : '⬜'}
-                        </span>
-                        <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
-                          {subtask.judul}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  {/* Progress */}
-                  {selectedTask.subtasks.length > 0 && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Progress: {selectedTask.progress || 0}% ({selectedTask.subtasks.filter(s => s.is_done).length}/{selectedTask.subtasks.length})
+                {/* Subtask */}
+                {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
+                  <div className="mt-3">
+                    <h4 className="font-semibold text-gray-700 mb-1">📋 Subtask</h4>
+                    <ul className="space-y-1">
+                      {selectedTask.subtasks.map((subtask) => (
+                        <li key={subtask.id} className="flex items-center gap-2">
+                          <span className={`text-sm ${subtask.is_done ? 'text-green-600' : 'text-red-500'}`}>
+                            {subtask.is_done ? '✅' : '⬜'}
+                          </span>
+                          <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
+                            {subtask.judul}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {selectedTask.subtasks.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Progress: {selectedTask.progress || 0}% ({selectedTask.subtasks.filter(s => s.is_done).length}/{selectedTask.subtasks.length})
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Catatan Harian */}
+                {(selectedTask.status === 'submitted' || selectedTask.status === 'completed') && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-md border border-blue-200">
+                    <h4 className="font-semibold text-blue-700 mb-1">📝 Catatan Harian (Staf)</h4>
+                    {selectedTask.catatan_harian ? (
+                      <p className="text-gray-700 whitespace-pre-wrap">{selectedTask.catatan_harian}</p>
+                    ) : (
+                      <p className="text-gray-400 italic">Staf belum mengisi catatan harian.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Riwayat Aktivitas */}
+                <div className="mt-4">
+                  <h4 className="font-semibold text-gray-700 mb-2">📜 Riwayat Aktivitas</h4>
+                  <div className="space-y-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded-md">
+                    {selectedTask.progress_logs && selectedTask.progress_logs.length > 0 ? (
+                      selectedTask.progress_logs.map((log) => (
+                        <div key={log.id} className="text-xs border-b border-gray-200 py-1 last:border-0">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">
+                              {new Date(log.created_at).toLocaleString('id-ID', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                            <span className="text-blue-600">{log.progress !== undefined && `${log.progress}%`}</span>
+                          </div>
+                          <div className="mt-0.5">
+                            <span className="font-medium">
+                              {log.activity_type === 'note' && '📝'}
+                              {log.activity_type === 'subtask' && '✅'}
+                              {log.activity_type === 'submit' && '📤'}
+                              {log.activity_type === 'approve' && '✅'}
+                              {log.activity_type === 'score' && '⭐'}
+                              {' '}
+                              {log.description}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-400 italic">Belum ada aktivitas.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Skor Akhir */}
+                {selectedTask.status === 'completed' && (
+                  <div className="mt-3 p-3 bg-green-50 rounded-md border border-green-200">
+                    <h4 className="font-semibold text-green-700 mb-1">🏆 Skor Akhir</h4>
+                    <p className="text-2xl font-bold text-green-600">{selectedTask.skor_akhir}</p>
+                    <p className="text-sm text-gray-500">
+                      Bobot: {selectedTask.bobot} × Nilai: {selectedTask.nilai} × Faktor Waktu: {selectedTask.faktor_waktu}
                     </p>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
+            )}
 
-              {/* ===== CATATAN HARIAN (untuk submitted & completed) ===== */}
-              {(selectedTask.status === 'submitted' || selectedTask.status === 'completed') && (
-                <div className="mt-3 p-3 bg-blue-50 rounded-md border border-blue-200">
-                  <h4 className="font-semibold text-blue-700 mb-1">📝 Catatan Harian (Staf)</h4>
-                  {selectedTask.catatan_harian ? (
-                    <p className="text-gray-700 whitespace-pre-wrap">{selectedTask.catatan_harian}</p>
-                  ) : (
-                    <p className="text-gray-400 italic">Staf belum mengisi catatan harian.</p>
-                  )}
-                </div>
-              )}
-
-              {/* === RIWAYAT AKTIVITAS === */}
-              <div className="mt-4">
-                <h4 className="font-semibold text-gray-700 mb-2">📜 Riwayat Aktivitas</h4>
-                <div className="space-y-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded-md">
-                  {selectedTask.progress_logs && selectedTask.progress_logs.length > 0 ? (
-                    selectedTask.progress_logs.map((log) => (
-                      <div key={log.id} className="text-xs border-b border-gray-200 py-1 last:border-0">
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">
-                            {new Date(log.created_at).toLocaleString('id-ID', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                          <span className="text-blue-600">{log.progress !== undefined && `${log.progress}%`}</span>
-                        </div>
-                        <div className="mt-0.5">
-                          <span className="font-medium">
-                            {log.activity_type === 'note' && '📝'}
-                            {log.activity_type === 'subtask' && '✅'}
-                            {log.activity_type === 'submit' && '📤'}
-                            {log.activity_type === 'approve' && '✅'}
-                            {log.activity_type === 'score' && '⭐'}
-                            {' '}
-                            {log.description}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-gray-400 italic">Belum ada aktivitas.</p>
-                  )}
-                </div>
-            </div>
-
-              {/* ===== SKOR AKHIR (untuk completed) ===== */}
-              {selectedTask.status === 'completed' && (
-                <div className="mt-3 p-3 bg-green-50 rounded-md border border-green-200">
-                  <h4 className="font-semibold text-green-700 mb-1">🏆 Skor Akhir</h4>
-                  <p className="text-2xl font-bold text-green-600">{selectedTask.skor_akhir}</p>
-                  <p className="text-sm text-gray-500">
-                    Bobot: {selectedTask.bobot} × Nilai: {selectedTask.nilai} × Faktor Waktu: {selectedTask.faktor_waktu}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Aksi */}
+            {/* Aksi - dengan guard */}
             <div className="border-t pt-4 mt-4 flex gap-3 flex-wrap">
-              {selectedTask.status === 'proposed' && (
+              {selectedTask && selectedTask.status === 'proposed' && (
                 <>
                   <button
                     onClick={() => handleApprove(selectedTask.id, 'approved')}
@@ -458,7 +453,8 @@ export default function AtasanDashboard() {
                   </button>
                 </>
               )}
-              {selectedTask.status === 'submitted' && (
+              
+              {selectedTask && selectedTask.status === 'submitted' && (
                 <button
                   onClick={async () => {
                     const nilaiInput = prompt('Masukkan nilai (0-100):', '100');
@@ -488,6 +484,7 @@ export default function AtasanDashboard() {
                   ⭐ Beri Nilai
                 </button>
               )}
+              
               <button
                 onClick={closeModal}
                 disabled={isSubmitting}
