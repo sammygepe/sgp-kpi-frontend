@@ -24,6 +24,9 @@ export default function ReportsPage() {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [user, setUser] = useState(null);
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [staffTasks, setStaffTasks] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -53,6 +56,17 @@ export default function ReportsPage() {
       console.error('Error fetching report:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStaffDetail = async (staffId) => {
+    try {
+      const response = await api.get(`/reports/staff/${staffId}`);
+      setStaffTasks(response.data.tasks || []);
+      setSelectedStaff(response.data.staff);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching staff detail:', error);
     }
   };
 
@@ -88,7 +102,7 @@ export default function ReportsPage() {
       },
       title: {
         display: true,
-        text: 'Ranking KPI Staf',
+        text: `Ranking KPI Staf - ${period === 'month' ? 'Bulanan' : period === 'quarter' ? 'Kuartal' : 'Tahunan'}`,
       },
     },
     scales: {
@@ -185,7 +199,11 @@ export default function ReportsPage() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-700">🏆 Ranking Staf</h3>
             {reportData.map((staff, index) => (
-              <div key={staff.staff_id} className="bg-white p-4 rounded-lg shadow flex justify-between items-center">
+              <div
+                key={staff.staff_id}
+                className="bg-white p-4 rounded-lg shadow flex justify-between items-center cursor-pointer hover:shadow-lg transition"
+                onClick={() => fetchStaffDetail(staff.staff_id)}
+              >
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl font-bold text-gray-400">#{index + 1}</span>
@@ -204,6 +222,76 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
+
+      {/* ===== MODAL DETAIL STAF ===== */}
+      {isModalOpen && selectedStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center border-b pb-3 mb-4">
+              <h2 className="text-xl font-bold text-gray-800">{selectedStaff.name}</h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="space-y-3">
+              <p><strong>Atasan:</strong> {selectedStaff.supervisor?.name || 'Tidak ada'}</p>
+              <p><strong>Jabatan:</strong> {selectedStaff.jabatan || 'N/A'}</p>
+
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <div className="bg-blue-50 p-3 rounded-md text-center">
+                  <p className="text-2xl font-bold text-blue-600">{staffTasks.length}</p>
+                  <p className="text-xs text-gray-500">Total Tugas</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-md text-center">
+                  <p className="text-2xl font-bold text-green-600">
+                    {staffTasks.length > 0 ? (staffTasks.reduce((sum, t) => sum + t.skor_akhir, 0) / staffTasks.length).toFixed(2) : 0}
+                  </p>
+                  <p className="text-xs text-gray-500">Rata-rata Skor</p>
+                </div>
+                <div className="bg-purple-50 p-3 rounded-md text-center">
+                  <p className="text-2xl font-bold text-purple-600">
+                    {staffTasks.length > 0 ? Math.max(...staffTasks.map(t => t.skor_akhir || 0)) : 0}
+                  </p>
+                  <p className="text-xs text-gray-500">Skor Tertinggi</p>
+                </div>
+              </div>
+
+              {staffTasks.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-semibold text-gray-700 mb-2">📋 Daftar Tugas</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {staffTasks.map((task) => (
+                      <div key={task.id} className="bg-gray-50 p-3 rounded-md border">
+                        <p className="font-medium text-gray-800">{task.judul_spesifik}</p>
+                        <div className="flex justify-between text-sm text-gray-500">
+                          <span>Skor: <span className="font-bold text-green-600">{task.skor_akhir}</span></span>
+                          <span>{new Date(task.updated_at).toLocaleDateString('id-ID')}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Aksi */}
+            <div className="border-t pt-4 mt-4">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
