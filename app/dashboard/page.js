@@ -304,13 +304,16 @@ export default function DashboardPage() {
 
             {/* Body */}
             <div className="space-y-3">
-              <p><strong>Jenis:</strong> {selectedTask.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'}</p>
-              <p><strong>Status:</strong> {selectedTask.status}</p>
-              <p><strong>Deadline:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString('id-ID') : 'N/A'}</p>
-              <p><strong>Bobot:</strong> {selectedTask.bobot}</p>
-              <p><strong>Periode:</strong> {selectedTask.recurrence_type || 'N/A'}</p>
-              <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
-
+              {/* ===== INFO TUGAS (2 KOLOM) ===== */}
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                <p><strong>Jenis:</strong> {selectedTask.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'}</p>
+                <p><strong>Status:</strong> {selectedTask.status}</p>
+                <p><strong>Deadline:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString('id-ID') : 'N/A'}</p>
+                <p><strong>Bobot:</strong> {selectedTask.bobot}</p>
+                <p><strong>Periode:</strong> {selectedTask.recurrence_type || 'N/A'}</p>
+                <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
+              </div>
+              
               {/* CATATAN HARIAN */}
               <div className="mt-4">
                 <h4 className="font-semibold text-gray-700 mb-1">
