@@ -68,19 +68,33 @@ export default function AtasanDashboard() {
       }
 
       setIsSubmitting(true);
-      await api.put(`/tasks/${taskId}/approve`, {
+      const response = await api.put(`/tasks/${taskId}/approve`, {
         status: status,
         bobot: editedBobot,
         deadline: editedDeadline || undefined,
         reason: reason || (status === 'approved' ? 'Disetujui oleh atasan' : 'Ditolak oleh atasan')
       });
       
-      setIsModalOpen(false);
-      setSelectedTask(null);
-      setReason('');
-      setEditedBobot(3);
-      setEditedDeadline('');
-      fetchTasks();
+      // === UPDATE LOCAL STATE ===
+      updateLocalTask({
+        status: status,
+        bobot: editedBobot,
+        deadline: editedDeadline || task?.deadline,
+      });
+      
+      // Refresh data dari backend untuk dapatkan log terbaru
+      const refreshedTask = await api.get(`/tasks/${taskId}`);
+      updateLocalTask(refreshedTask.data);
+      
+      // Tutup modal setelah berhasil
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setSelectedTask(null);
+        setReason('');
+        setEditedBobot(3);
+        setEditedDeadline('');
+        fetchTasks();
+      }, 500);
     } catch (error) {
       console.error('Error approving task:', error);
       alert('Gagal memproses tugas');
@@ -91,7 +105,20 @@ export default function AtasanDashboard() {
 
   const handleNilai = async (taskId, nilai, reason) => {
     try {
-      await api.post(`/tasks/${taskId}/nilai`, { nilai, reason });
+      const response = await api.post(`/tasks/${taskId}/nilai`, { nilai, reason });
+      
+      // === UPDATE LOCAL STATE ===
+      updateLocalTask({
+        status: 'completed',
+        nilai: nilai,
+        skor_akhir: response.data.data.skor_akhir,
+        faktor_waktu: response.data.data.faktor_waktu,
+      });
+      
+      // Refresh data dari backend untuk dapatkan log terbaru
+      const refreshedTask = await api.get(`/tasks/${taskId}`);
+      updateLocalTask(refreshedTask.data);
+      
       fetchTasks();
     } catch (error) {
       console.error('Error scoring task:', error);
@@ -132,6 +159,14 @@ export default function AtasanDashboard() {
   const filteredTasks = filter === 'all' 
     ? tasks 
     : tasks.filter(task => task.status === filter);
+
+  // === UPDATE LOCAL TASK (untuk modal) ===
+  const updateLocalTask = (updatedData) => {
+    setSelectedTask(prev => ({
+      ...prev,
+      ...updatedData
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -237,35 +272,51 @@ export default function AtasanDashboard() {
                     >
                       Detail
                     </button>
-                    {task.status === 'submitted' && (
-                      <button
-                        onClick={async () => {
-                          const nilaiInput = prompt('Masukkan nilai (0-100):', '100');
-                          if (nilaiInput === null) return;
-                          
-                          const nilai = parseInt(nilaiInput);
-                          if (isNaN(nilai) || nilai < 0 || nilai > 100) {
-                            alert('Nilai harus antara 0-100.');
-                            return;
-                          }
-                          
-                          let reason = '';
-                          if (nilai < 100) {
-                            reason = prompt('Alasan penurunan nilai (wajib):', '');
-                            if (reason === null) return;
-                            if (reason.trim() === '') {
-                              alert('Alasan wajib diisi jika nilai di bawah 100.');
+
+                      {selectedTask.status === 'submitted' && (
+                        <button
+                          onClick={async () => {
+                            const nilaiInput = prompt('Masukkan nilai (0-100):', '100');
+                            if (nilaiInput === null) return;
+                            
+                            const nilai = parseInt(nilaiInput);
+                            if (isNaN(nilai) || nilai < 0 || nilai > 100) {
+                              alert('Nilai harus antara 0-100.');
                               return;
                             }
-                          }
-                          
-                          await handleNilai(task.id, nilai, reason || 'Nilai default 100');
-                        }}
-                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition"
-                      >
-                        Beri Nilai
-                      </button>
-                    )}
+                            
+                            let reason = '';
+                            if (nilai < 100) {
+                              reason = prompt('Alasan penurunan nilai (wajib):', '');
+                              if (reason === null) return;
+                              if (reason.trim() === '') {
+                                alert('Alasan wajib diisi jika nilai di bawah 100.');
+                                return;
+                              }
+                            }
+                            
+                            await handleNilai(selectedTask.id, nilai, reason || 'Nilai default 100');
+                            
+                            // === UPDATE LOCAL STATE ===
+                            updateLocalTask({
+                              status: 'completed',
+                              nilai: nilai,
+                            });
+                            
+                            // Refresh data dari backend
+                            const refreshedTask = await api.get(`/tasks/${selectedTask.id}`);
+                            updateLocalTask(refreshedTask.data);
+                            
+                            // Tutup modal setelah 1 detik
+                            setTimeout(() => {
+                              closeModal();
+                            }, 1000);
+                          }}
+                          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        >
+                          ⭐ Beri Nilai
+                        </button>
+                      )}
                   </div>
                 </div>
               </div>
@@ -336,6 +387,44 @@ export default function AtasanDashboard() {
                   )}
                 </div>
               )}
+
+              {/* === RIWAYAT AKTIVITAS === */}
+              <div className="mt-4">
+                <h4 className="font-semibold text-gray-700 mb-2">📜 Riwayat Aktivitas</h4>
+                <div className="space-y-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded-md">
+                  {selectedTask.progress_logs && selectedTask.progress_logs.length > 0 ? (
+                    selectedTask.progress_logs.map((log) => (
+                      <div key={log.id} className="text-xs border-b border-gray-200 py-1 last:border-0">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">
+                            {new Date(log.created_at).toLocaleString('id-ID', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                          <span className="text-blue-600">{log.progress !== undefined && `${log.progress}%`}</span>
+                        </div>
+                        <div className="mt-0.5">
+                          <span className="font-medium">
+                            {log.activity_type === 'note' && '📝'}
+                            {log.activity_type === 'subtask' && '✅'}
+                            {log.activity_type === 'submit' && '📤'}
+                            {log.activity_type === 'approve' && '✅'}
+                            {log.activity_type === 'score' && '⭐'}
+                            {' '}
+                            {log.description}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">Belum ada aktivitas.</p>
+                  )}
+                </div>
+            </div>
 
               {/* ===== SKOR AKHIR (untuk completed) ===== */}
               {selectedTask.status === 'completed' && (

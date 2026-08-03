@@ -37,8 +37,23 @@ export default function DashboardPage() {
   const handleSubmit = async (taskId) => {
     try {
       await api.post(`/tasks/${taskId}/submit`);
-      fetchTasks();
-      closeModal();
+      
+      // === UPDATE LOCAL STATE ===
+      updateLocalTask({ 
+        status: 'submitted',
+        tanggal_submit: new Date().toISOString().split('T')[0],
+        submitted_at: new Date().toISOString()
+      });
+      
+      // Fetch ulang untuk dapatkan data terbaru
+      const response = await api.get(`/tasks/${taskId}`);
+      updateLocalTask(response.data);
+      
+      // Tutup modal setelah berhasil
+      setTimeout(() => {
+        closeModal();
+        fetchTasks();
+      }, 1000);
     } catch (error) {
       console.error('Error submitting task:', error);
     }
@@ -184,6 +199,14 @@ export default function DashboardPage() {
 
   const activeData = tabs.find(tab => tab.id === activeTab)?.data || [];
 
+    // === UPDATE LOCAL TASK (untuk modal) ===
+  const updateLocalTask = (updatedData) => {
+    setSelectedTask(prev => ({
+      ...prev,
+      ...updatedData
+    }));
+  };
+
   // === RENDER ===
   return (
     <div className="min-h-screen bg-gray-50">
@@ -317,9 +340,16 @@ export default function DashboardPage() {
                   value={selectedTask.catatan_harian || ''}
                   onChange={async (e) => {
                     const value = e.target.value;
-                    setSelectedTask(prev => ({ ...prev, catatan_harian: value }));
+                    
+                    // === UPDATE LOCAL STATE ===
+                    updateLocalTask({ catatan_harian: value });
+                    
+                    // === SAVE TO BACKEND ===
                     try {
                       await api.put(`/tasks/${selectedTask.id}`, { catatan_harian: value });
+                      // Refresh data task dari backend untuk dapatkan log terbaru
+                      const response = await api.get(`/tasks/${selectedTask.id}`);
+                      updateLocalTask(response.data);
                     } catch (err) {
                       console.error('Error saving catatan:', err);
                     }
@@ -342,14 +372,21 @@ export default function DashboardPage() {
                           onChange={async () => {
                             try {
                               await api.put(`/subtasks/${subtask.id}/toggle`);
+                              
+                              // === UPDATE LOCAL STATE ===
                               const updatedSubtasks = selectedTask.subtasks.map(s =>
                                 s.id === subtask.id ? { ...s, is_done: !s.is_done } : s
                               );
-                              setSelectedTask(prev => ({
-                                ...prev,
+                              const newProgress = Math.round((updatedSubtasks.filter(s => s.is_done).length / updatedSubtasks.length) * 100);
+                              
+                              updateLocalTask({
                                 subtasks: updatedSubtasks,
-                                progress: Math.round((updatedSubtasks.filter(s => s.is_done).length / updatedSubtasks.length) * 100)
-                              }));
+                                progress: newProgress
+                              });
+                              
+                              // Refresh untuk dapatkan log terbaru
+                              const response = await api.get(`/tasks/${selectedTask.id}`);
+                              updateLocalTask(response.data);
                             } catch (err) {
                               console.error('Error toggling subtask:', err);
                             }
@@ -376,6 +413,45 @@ export default function DashboardPage() {
                   )}
                 </div>
               )}
+
+              {/* === RIWAYAT AKTIVITAS === */}
+              <div className="mt-4">
+                <h4 className="font-semibold text-gray-700 mb-2">📜 Riwayat Aktivitas</h4>
+                <div className="space-y-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded-md">
+                  {selectedTask.progress_logs && selectedTask.progress_logs.length > 0 ? (
+                    selectedTask.progress_logs.map((log) => (
+                      <div key={log.id} className="text-xs border-b border-gray-200 py-1 last:border-0">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">
+                            {new Date(log.created_at).toLocaleString('id-ID', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                          <span className="text-blue-600">{log.progress !== undefined && `${log.progress}%`}</span>
+                        </div>
+                        <div className="mt-0.5">
+                          <span className="font-medium">
+                            {log.activity_type === 'note' && '📝'}
+                            {log.activity_type === 'subtask' && '✅'}
+                            {log.activity_type === 'submit' && '📤'}
+                            {log.activity_type === 'approve' && '✅'}
+                            {log.activity_type === 'score' && '⭐'}
+                          </span>
+                          <div className="whitespace-pre-wrap text-gray-700 mt-0.5 text-xs">
+                            {log.description}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">Belum ada aktivitas.</p>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* SUBMIT CONDITION */}
