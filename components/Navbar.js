@@ -117,4 +117,13 @@ export default function Navbar({ user, onLogout }) {
       </div>
     </nav>
   );
+
+  {user?.role === 'admin' && (
+    <button
+      onClick={() => router.push('/admin')}
+      className="text-sm text-purple-600 hover:text-purple-800 transition"
+    >
+      🛠️ Admin
+    </button>
+  )}
 }
