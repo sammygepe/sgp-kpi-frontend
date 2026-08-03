@@ -166,6 +166,30 @@ export default function TaskDetailPage() {
         {task.status === 'approved' && !allSubtasksDone && (
           <p className="mt-4 text-yellow-600 text-sm">Selesaikan semua checklist sebelum submit.</p>
         )}
+
+        {task.status === 'rejected' && (
+          <button
+            onClick={() => {
+              // Simpan data ke sessionStorage untuk diedit
+              sessionStorage.setItem('editTaskData', JSON.stringify({
+                judul_spesifik: task.judul_spesifik,
+                deskripsi: task.deskripsi,
+                jenis: task.jenis,
+                recurrence_type: task.recurrence_type,
+                recurrence_day: task.recurrence_day,
+                recurrence_month: task.recurrence_month,
+                generate_offset_days: task.generate_offset_days,
+                bobot: task.bobot,
+                deadline: task.deadline?.split('T')[0] || '',
+                subtasks: task.subtasks?.map(s => ({ judul: s.judul })) || [],
+              }));
+              router.push('/tasks/propose?edit=true');
+            }}
+            className="mt-4 w-full bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700 transition font-medium"
+          >
+            ✏️ Edit & Ajukan Ulang
+          </button>
+        )}        
       </div>
     </div>
   );

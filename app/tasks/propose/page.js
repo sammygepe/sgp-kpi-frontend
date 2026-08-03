@@ -24,6 +24,34 @@ export default function ProposeTaskPage() {
     subtasks: [{ judul: '' }],
   });
 
+  // =====================================================
+  // === TARUH KODE useEffect DI SINI (SETELAH STATE) ===
+  // =====================================================
+  useEffect(() => {
+    // Cek apakah ada data edit dari sessionStorage
+    const editData = sessionStorage.getItem('editTaskData');
+    if (editData) {
+      try {
+        const data = JSON.parse(editData);
+        setForm({
+          judul_spesifik: data.judul_spesifik || '',
+          deskripsi: data.deskripsi || '',
+          jenis: data.jenis || 'rutin',
+          recurrence_type: data.recurrence_type || 'daily',
+          recurrence_day: data.recurrence_day || '',
+          recurrence_month: data.recurrence_month || '',
+          generate_offset_days: data.generate_offset_days || 0,
+          bobot: data.bobot || 3,
+          deadline: data.deadline || '',
+          subtasks: data.subtasks?.length > 0 ? data.subtasks : [{ judul: '' }],
+        });
+        sessionStorage.removeItem('editTaskData');
+      } catch (e) {
+        console.error('Error loading edit data:', e);
+      }
+    }
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
