@@ -158,6 +158,44 @@ export default function ProposeTaskPage() {
     }
   };
 
+  const handleSaveDraft = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess(false);
+
+    const filteredSubtasks = form.subtasks.filter((s) => s.judul.trim() !== '');
+
+    try {
+      await api.post('/tasks/propose', {
+        ...form,
+        status: 'draft',
+        subtasks: filteredSubtasks,
+      });
+      
+      setSuccess(true);
+      setForm({
+        judul_spesifik: '',
+        deskripsi: '',
+        jenis: 'rutin',
+        recurrence_type: 'daily',
+        recurrence_day: '',
+        recurrence_month: '',
+        generate_offset_days: 0,
+        bobot: 3,
+        deadline: '',
+        subtasks: [{ judul: '', porsi: 0 }],
+      });
+      
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Gagal menyimpan draft.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
@@ -454,13 +492,24 @@ export default function ProposeTaskPage() {
           </div>
 
           {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
-          >
-            {loading ? 'Mengirim...' : 'Ajukan Tugas'}
-          </button>
+          <div className="flex gap-3 mt-4">
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              disabled={loading}
+              className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition font-medium"
+            >
+              💾 Simpan Draft
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+            >
+              {loading ? 'Mengirim...' : '🚀 Ajukan Tugas'}
+            </button>
+          </div>
+
         </form>
       </div>
     </div>

@@ -102,8 +102,8 @@ export default function DashboardPage() {
   });
 
   const proposedTasks = tasks.filter(task => task.status === 'proposed');
-
   const submittedTasks = tasks.filter(task => task.status === 'submitted');
+  const draftTasks = tasks.filter(task => task.status === 'draft');
 
   const futureTasks = tasks.filter(task => {
     if (!task.deadline) return false;
@@ -126,6 +126,7 @@ export default function DashboardPage() {
 
   // === DATA UNTUK TAB ===
   const tabs = [
+    { id: 'draft', label: '📝 Draft', count: draftTasks.length, data: draftTasks },
     { id: 'approaching', label: '📋 Mendekati Deadline', count: approachingTasks.length, data: approachingTasks },
     { id: 'overdue', label: '⚠️ Terlambat', count: overdueTasks.length, data: overdueTasks },
     { id: 'proposed', label: '⏳ Menunggu Persetujuan', count: proposedTasks.length, data: proposedTasks },
@@ -267,16 +268,42 @@ export default function DashboardPage() {
                     {task.bobot && <p className="text-sm text-gray-600">Bobot: {task.bobot}</p>}
                   </div>
                   <div className="flex gap-2 flex-wrap ml-4">
-                    {task.status === 'rejected' ? (
-                      // === TUGAS DITOLAK → TOMBOL EDIT (ARAH KE HALAMAN [id]) ===
+                    {task.status === 'draft' && (
+                      <button
+                        onClick={() => {
+                          sessionStorage.setItem('editTaskData', JSON.stringify({
+                            judul_spesifik: task.judul_spesifik,
+                            deskripsi: task.deskripsi,
+                            jenis: task.jenis,
+                            recurrence_type: task.recurrence_type,
+                            recurrence_day: task.recurrence_day,
+                            recurrence_month: task.recurrence_month,
+                            generate_offset_days: task.generate_offset_days,
+                            bobot: task.bobot,
+                            deadline: task.deadline?.split('T')[0] || '',
+                            subtasks: task.subtasks?.map(s => ({ 
+                              judul: s.judul, 
+                              porsi: s.porsi || 0 
+                            })) || [],
+                          }));
+                          router.push('/tasks/propose?edit=true');
+                        }}
+                        className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600 transition"
+                      >
+                        ✏️ Lanjutkan Draft
+                      </button>
+                    )}
+
+                    {task.status === 'rejected' && (
                       <button
                         onClick={() => router.push(`/tasks/${task.id}`)}
                         className="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600 transition"
                       >
                         ✏️ Edit & Ajukan Ulang
                       </button>
-                    ) : (
-                      // === TUGAS LAIN → TOMBOL DETAIL (MODAL) ===
+                    )}
+
+                    {task.status !== 'draft' && task.status !== 'rejected' && (
                       <button
                         onClick={() => openModal(task)}
                         className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition"
@@ -284,6 +311,7 @@ export default function DashboardPage() {
                         Detail
                       </button>
                     )}
+
                     {task.status === 'approved' && (
                       <button
                         onClick={() => handleSubmit(task.id)}
