@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 
@@ -77,52 +77,69 @@ export default function ProposeTaskPage() {
   };
 
   const handleSubmit = async (e) => {
-      e.preventDefault();
-      setLoading(true);
-      setError('');
-      setSuccess(false);
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess(false);
 
-      // Filter subtasks yang kosong
-      const filteredSubtasks = form.subtasks.filter((s) => s.judul.trim() !== '');
+    // Filter subtasks yang kosong
+    const filteredSubtasks = form.subtasks.filter((s) => s.judul.trim() !== '');
 
-      // === VALIDASI TOTAL PORSI ===
-      if (filteredSubtasks.length > 0) {
-          const totalPorsi = filteredSubtasks.reduce((sum, s) => sum + (s.porsi || 0), 0);
-          if (totalPorsi !== 100) {
-              setError(`Total porsi subtask harus 100% (saat ini: ${totalPorsi}%)`);
-              setLoading(false);
-              return;
-          }
-      }
+    // === VALIDASI SUBTASK WAJIB ===
+    const isProyek = form.jenis === 'proyek';
+    const isRutin = form.jenis === 'rutin';
+    const isRutinMingguan = isRutin && form.recurrence_type === 'weekly';
+    const isRutinBulanan = isRutin && form.recurrence_type === 'monthly';
+    const isRutinTahunan = isRutin && form.recurrence_type === 'yearly';
+    const isRutinHarian = isRutin && form.recurrence_type === 'daily';
 
-      try {
-          await api.post('/tasks/propose', {
-              ...form,
-              subtasks: form.subtasks.filter((s) => s.judul.trim() !== ''),
-          });
-          
-          setSuccess(true);
-          setForm({
-              judul_spesifik: '',
-              deskripsi: '',
-              jenis: 'rutin',
-              recurrence_type: 'daily',
-              recurrence_day: '',
-              recurrence_month: '',
-              generate_offset_days: 0,
-              bobot: 3,
-              deadline: '',
-              subtasks: [{ judul: '', porsi: 0 }],
-          });
-          
-          setTimeout(() => {
-              router.push('/dashboard');
-          }, 2000);
-      } catch (err) {
-          setError(err.response?.data?.message || 'Gagal mengajukan tugas. Silakan coba lagi.');
-      } finally {
-          setLoading(false);
-      }
+    // Tentukan apakah subtask wajib
+    const isSubtaskRequired = isProyek || isRutinMingguan || isRutinBulanan || isRutinTahunan;
+
+    if (isSubtaskRequired && filteredSubtasks.length === 0) {
+        setError('Subtask wajib diisi untuk tugas ini!');
+        setLoading(false);
+        return;
+    }
+
+    // === VALIDASI TOTAL PORSI ===
+    if (filteredSubtasks.length > 0) {
+        const totalPorsi = filteredSubtasks.reduce((sum, s) => sum + (s.porsi || 0), 0);
+        if (totalPorsi !== 100) {
+            setError(`Total porsi subtask harus 100% (saat ini: ${totalPorsi}%)`);
+            setLoading(false);
+            return;
+        }
+    }
+
+    try {
+        await api.post('/tasks/propose', {
+            ...form,
+            subtasks: filteredSubtasks,
+        });
+        
+        setSuccess(true);
+        setForm({
+      judul_spesifik: '',
+      deskripsi: '',
+      jenis: 'rutin',
+      recurrence_type: 'daily',
+      recurrence_day: '',
+      recurrence_month: '',
+      generate_offset_days: 0,
+      bobot: 3,
+      deadline: '',
+      subtasks: [{ judul: '', porsi: 0 }],
+    });
+      
+    setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Gagal mengajukan tugas. Silakan coba lagi.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
