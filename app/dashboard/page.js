@@ -187,15 +187,16 @@ export default function DashboardPage() {
   }
 
   // === GET STATUS COLOR ===
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'proposed': return 'text-yellow-600';
-      case 'approved': return 'text-blue-600';
-      case 'submitted': return 'text-purple-600';
-      case 'completed': return 'text-green-600';
-      default: return 'text-gray-600';
-    }
-  };
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'proposed': return 'text-yellow-600';
+        case 'approved': return 'text-blue-600';
+        case 'submitted': return 'text-purple-600';
+        case 'completed': return 'text-green-600';
+        case 'rejected': return 'text-red-600';
+        default: return 'text-gray-600';
+      }
+    };
 
   const activeData = tabs.find(tab => tab.id === activeTab)?.data || [];
 
@@ -256,9 +257,6 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-800">{task.judul_spesifik}</h4>
-                    <p className="text-xs text-gray-500">
-                      {task.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'}
-                    </p>
                     <p className="text-sm text-gray-600">
                       Status: <span className={`font-medium ${getStatusColor(task.status)}`}>{task.status}</span>
                     </p>
@@ -268,12 +266,23 @@ export default function DashboardPage() {
                     {task.bobot && <p className="text-sm text-gray-600">Bobot: {task.bobot}</p>}
                   </div>
                   <div className="flex gap-2 flex-wrap ml-4">
-                    <button
-                      onClick={() => openModal(task)}
-                      className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition"
-                    >
-                      Detail
-                    </button>
+                    {task.status === 'rejected' ? (
+                      // === TUGAS DITOLAK → TOMBOL EDIT (ARAH KE HALAMAN [id]) ===
+                      <button
+                        onClick={() => router.push(`/tasks/${task.id}`)}
+                        className="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600 transition"
+                      >
+                        ✏️ Edit & Ajukan Ulang
+                      </button>
+                    ) : (
+                      // === TUGAS LAIN → TOMBOL DETAIL (MODAL) ===
+                      <button
+                        onClick={() => openModal(task)}
+                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition"
+                      >
+                        Detail
+                      </button>
+                    )}
                     {task.status === 'approved' && (
                       <button
                         onClick={() => handleSubmit(task.id)}
