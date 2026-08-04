@@ -347,28 +347,29 @@ export default function AtasanDashboard() {
                   <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
                 </div>
 
-                {/* Subtask */}
+                {/* ===== SUBTASK LIST ===== */}
                 {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
                   <div className="mt-3">
                     <h4 className="font-semibold text-gray-700 mb-1">📋 Subtask</h4>
                     <ul className="space-y-1">
                       {selectedTask.subtasks.map((subtask) => (
                         <li key={subtask.id} className="flex items-center gap-2 justify-between">
-                            <div className="flex items-center gap-2">
-                                <span className={`text-sm ${subtask.is_done ? 'text-green-600' : 'text-red-500'}`}>
-                                    {subtask.is_done ? '✅' : '⬜'}
-                                </span>
-                                <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
-                                    {subtask.judul}
-                                </span>
-                            </div>
-                            <span className="text-xs text-gray-400">{subtask.porsi || 0}%</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm ${subtask.is_done ? 'text-green-600' : 'text-red-500'}`}>
+                              {subtask.is_done ? '✅' : '⬜'}
+                            </span>
+                            <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
+                              {subtask.judul}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-400">{subtask.porsi || 0}%</span>
                         </li>
                       ))}
                     </ul>
+                    {/* Progress */}
                     {selectedTask.subtasks.length > 0 && (
                       <p className="text-xs text-gray-500 mt-1">
-                        Progress: {selectedTask.progress || 0}% ({selectedTask.subtasks.filter(s => s.is_done).length}/{selectedTask.subtasks.length})
+                        Progress: {selectedTask.progress || 0}% (Berdasarkan porsi)
                       </p>
                     )}
                   </div>

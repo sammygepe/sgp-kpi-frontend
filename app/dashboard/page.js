@@ -348,25 +348,50 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-500 mt-1">💡 Catatan akan tersimpan otomatis.</p>
               </div>
 
-              {/* SUBTASK CHECKLIST */}
+              {/* ===== SUBTASK CHECKLIST ===== */}
               {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="font-semibold text-gray-700 mb-1">✅ Checklist <span className="text-red-500 text-sm">* Wajib</span></h4>
+                  <h4 className="font-semibold text-gray-700 mb-2">✅ Checklist</h4>
                   <ul className="space-y-1">
                     {selectedTask.subtasks.map((subtask) => (
-                        <li key={subtask.id} className="flex items-center gap-2 justify-between">
-                            <div className="flex items-center gap-2">
-                                <span className={`text-sm ${subtask.is_done ? 'text-green-600' : 'text-red-500'}`}>
-                                    {subtask.is_done ? '✅' : '⬜'}
-                                </span>
-                                <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
-                                    {subtask.judul}
-                                </span>
-                            </div>
-                            <span className="text-xs text-gray-400">{subtask.porsi || 0}%</span>
-                        </li>
+                      <li key={subtask.id} className="flex items-center gap-2 justify-between">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={subtask.is_done}
+                            onChange={async () => {
+                              try {
+                                await api.put(`/subtasks/${subtask.id}/toggle`);
+                                // Update local state
+                                const updatedSubtasks = selectedTask.subtasks.map(s =>
+                                  s.id === subtask.id ? { ...s, is_done: !s.is_done } : s
+                                );
+                                // Hitung progress berdasarkan porsi
+                                const totalPorsi = updatedSubtasks.reduce((sum, s) => sum + (s.porsi || 0), 0);
+                                const donePorsi = updatedSubtasks.filter(s => s.is_done).reduce((sum, s) => sum + (s.porsi || 0), 0);
+                                const newProgress = totalPorsi > 0 ? Math.round((donePorsi / totalPorsi) * 100) : 0;
+                                
+                                setSelectedTask(prev => ({
+                                  ...prev,
+                                  subtasks: updatedSubtasks,
+                                  progress: newProgress
+                                }));
+                              } catch (err) {
+                                console.error('Error toggling subtask:', err);
+                              }
+                            }}
+                            className="w-4 h-4 text-blue-600"
+                            disabled={selectedTask.status === 'submitted' || selectedTask.status === 'completed'}
+                          />
+                          <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
+                            {subtask.judul}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-400">{subtask.porsi || 0}%</span>
+                      </li>
                     ))}
                   </ul>
+                  {/* Progress Bar */}
                   {selectedTask.subtasks.length > 0 && (
                     <div className="mt-2">
                       <div className="w-full bg-gray-200 rounded-full h-2">
@@ -375,7 +400,10 @@ export default function DashboardPage() {
                           style={{ width: `${selectedTask.progress || 0}%` }}
                         ></div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">Progress: {selectedTask.progress || 0}%</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Progress: {selectedTask.progress || 0}% 
+                        (Berdasarkan porsi)
+                      </p>
                     </div>
                   )}
                 </div>
