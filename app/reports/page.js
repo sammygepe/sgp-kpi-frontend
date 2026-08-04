@@ -183,6 +183,21 @@ export default function ReportsPage() {
           >
             🔄 Refresh
           </button>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => window.open(`/api/reports/export-pdf?period=${period}&month=${month}&year=${year}`, '_blank')}
+              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+            >
+              📄 PDF
+            </button>
+            <button
+              onClick={() => window.open(`/api/reports/export-excel?period=${period}&month=${month}&year=${year}`, '_blank')}
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+            >
+              📊 Excel
+            </button>
+          </div>          
         </div>
 
         {/* Grafik */}
