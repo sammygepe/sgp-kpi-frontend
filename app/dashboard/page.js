@@ -354,39 +354,17 @@ export default function DashboardPage() {
                   <h4 className="font-semibold text-gray-700 mb-1">✅ Checklist <span className="text-red-500 text-sm">* Wajib</span></h4>
                   <ul className="space-y-1">
                     {selectedTask.subtasks.map((subtask) => (
-                      <li key={subtask.id} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={subtask.is_done}
-                          onChange={async () => {
-                            try {
-                              await api.put(`/subtasks/${subtask.id}/toggle`);
-                              
-                              // === UPDATE LOCAL STATE ===
-                              const updatedSubtasks = selectedTask.subtasks.map(s =>
-                                s.id === subtask.id ? { ...s, is_done: !s.is_done } : s
-                              );
-                              const newProgress = Math.round((updatedSubtasks.filter(s => s.is_done).length / updatedSubtasks.length) * 100);
-                              
-                              updateLocalTask({
-                                subtasks: updatedSubtasks,
-                                progress: newProgress
-                              });
-                              
-                              // Refresh untuk dapatkan log terbaru
-                              const response = await api.get(`/tasks/${selectedTask.id}`);
-                              updateLocalTask(response.data);
-                            } catch (err) {
-                              console.error('Error toggling subtask:', err);
-                            }
-                          }}
-                          className="w-4 h-4 text-blue-600"
-                          disabled={selectedTask.status === 'submitted' || selectedTask.status === 'completed'}
-                        />
-                        <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
-                          {subtask.judul}
-                        </span>
-                      </li>
+                        <li key={subtask.id} className="flex items-center gap-2 justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className={`text-sm ${subtask.is_done ? 'text-green-600' : 'text-red-500'}`}>
+                                    {subtask.is_done ? '✅' : '⬜'}
+                                </span>
+                                <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
+                                    {subtask.judul}
+                                </span>
+                            </div>
+                            <span className="text-xs text-gray-400">{subtask.porsi || 0}%</span>
+                        </li>
                     ))}
                   </ul>
                   {selectedTask.subtasks.length > 0 && (

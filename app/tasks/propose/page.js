@@ -21,7 +21,7 @@ export default function ProposeTaskPage() {
     generate_offset_days: 0,
     bobot: 3,
     deadline: '',
-    subtasks: [{ judul: '' }],
+    subtasks: [{ judul: '', porsi: 0 }],
   });
 
   // =====================================================
@@ -57,10 +57,10 @@ export default function ProposeTaskPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubtaskChange = (index, value) => {
-    const newSubtasks = [...form.subtasks];
-    newSubtasks[index].judul = value;
-    setForm((prev) => ({ ...prev, subtasks: newSubtasks }));
+  const handleSubtaskChange = (index, field, value) => {
+      const newSubtasks = [...form.subtasks];
+      newSubtasks[index][field] = value;
+      setForm((prev) => ({ ...prev, subtasks: newSubtasks }));
   };
 
   const addSubtask = () => {
@@ -77,38 +77,52 @@ export default function ProposeTaskPage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccess(false);
+      e.preventDefault();
+      setLoading(true);
+      setError('');
+      setSuccess(false);
 
-    // Filter subtasks yang kosong
-    const filteredSubtasks = form.subtasks.filter((s) => s.judul.trim() !== '');
+      // Filter subtasks yang kosong
+      const filteredSubtasks = form.subtasks.filter((s) => s.judul.trim() !== '');
 
-    try {
-      await api.post('/tasks/propose', {
-        ...form,
-        subtasks: filteredSubtasks,
-      });
-      
-      setSuccess(true);
-      setForm({
-        judul_spesifik: '',
-        deskripsi: '',
-        bobot: 3,
-        deadline: '',
-        subtasks: [{ judul: '' }],
-      });
-      
-      // Redirect setelah 2 detik
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Gagal mengajukan tugas. Silakan coba lagi.');
-    } finally {
-      setLoading(false);
-    }
+      // === VALIDASI TOTAL PORSI ===
+      if (filteredSubtasks.length > 0) {
+          const totalPorsi = filteredSubtasks.reduce((sum, s) => sum + (s.porsi || 0), 0);
+          if (totalPorsi !== 100) {
+              setError(`Total porsi subtask harus 100% (saat ini: ${totalPorsi}%)`);
+              setLoading(false);
+              return;
+          }
+      }
+
+      try {
+          await api.post('/tasks/propose', {
+              ...form,
+              subtasks: form.subtasks.filter((s) => s.judul.trim() !== ''),
+          });
+          
+          setSuccess(true);
+          setForm({
+              judul_spesifik: '',
+              deskripsi: '',
+              jenis: 'rutin',
+              recurrence_type: 'daily',
+              recurrence_day: '',
+              recurrence_month: '',
+              generate_offset_days: 0,
+              bobot: 3,
+              deadline: '',
+              subtasks: [{ judul: '', porsi: 0 }],
+          });
+          
+          setTimeout(() => {
+              router.push('/dashboard');
+          }, 2000);
+      } catch (err) {
+          setError(err.response?.data?.message || 'Gagal mengajukan tugas. Silakan coba lagi.');
+      } finally {
+          setLoading(false);
+      }
   };
 
   return (
@@ -358,24 +372,33 @@ export default function ProposeTaskPage() {
             <p className="text-xs text-gray-500 mb-2">Opsional. Tambahkan langkah-langkah pengerjaan tugas.</p>
             
             {form.subtasks.map((subtask, index) => (
-              <div key={index} className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={subtask.judul}
-                  onChange={(e) => handleSubtaskChange(index, e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={`Langkah ${index + 1}`}
-                />
-                {form.subtasks.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeSubtask(index)}
-                    className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
+                <div key={index} className="flex gap-2 mb-2 items-center">
+                    <input
+                        type="text"
+                        value={subtask.judul || ''}
+                        onChange={(e) => handleSubtaskChange(index, 'judul', e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={`Langkah ${index + 1}`}
+                    />
+                    <input
+                        type="number"
+                        value={subtask.porsi || 0}
+                        onChange={(e) => handleSubtaskChange(index, 'porsi', parseInt(e.target.value) || 0)}
+                        min="0"
+                        max="100"
+                        className="w-20 px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Porsi"
+                    />
+                    {form.subtasks.length > 1 && (
+                        <button
+                            type="button"
+                            onClick={() => removeSubtask(index)}
+                            className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
+                        >
+                            ✕
+                        </button>
+                    )}
+                </div>
             ))}
             
             <button
