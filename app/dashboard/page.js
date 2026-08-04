@@ -187,16 +187,17 @@ export default function DashboardPage() {
   }
 
   // === GET STATUS COLOR ===
-    const getStatusColor = (status) => {
-      switch (status) {
-        case 'proposed': return 'text-yellow-600';
-        case 'approved': return 'text-blue-600';
-        case 'submitted': return 'text-purple-600';
-        case 'completed': return 'text-green-600';
-        case 'rejected': return 'text-red-600';
-        default: return 'text-gray-600';
-      }
-    };
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'draft': return 'text-gray-500';
+      case 'proposed': return 'text-yellow-600';
+      case 'approved': return 'text-blue-600';
+      case 'submitted': return 'text-purple-600';
+      case 'completed': return 'text-green-600';
+      case 'rejected': return 'text-red-600';
+      default: return 'text-gray-600';
+    }
+  };
 
   const activeData = tabs.find(tab => tab.id === activeTab)?.data || [];
 

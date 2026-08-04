@@ -156,6 +156,19 @@ export default function AtasanDashboard() {
     );
   }
 
+  // === GET STATUS COLOR ===
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'draft': return 'text-gray-500';
+      case 'proposed': return 'text-yellow-600';
+      case 'approved': return 'text-blue-600';
+      case 'submitted': return 'text-purple-600';
+      case 'completed': return 'text-green-600';
+      case 'rejected': return 'text-red-600';
+      default: return 'text-gray-600';
+    }
+  };
+
   const filteredTasks = filter === 'all' 
     ? tasks 
     : tasks.filter(task => task.status === filter);
@@ -246,7 +259,7 @@ export default function AtasanDashboard() {
                     </p>
                     <p className="text-sm text-gray-600">
                       Staf: {task.assignee?.name || 'N/A'} | 
-                      Status: <span className="font-medium">{task.status}</span>
+                      Status: <span className={`font-medium ${getStatusColor(task.status)}`}>{task.status}</span>
                     </p>
                     <p className="text-sm text-gray-600">
                       Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString('id-ID') : 'N/A'}
