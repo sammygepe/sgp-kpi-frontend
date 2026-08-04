@@ -91,9 +91,7 @@ export default function ProposeTaskPage() {
     const isRutinMingguan = isRutin && form.recurrence_type === 'weekly';
     const isRutinBulanan = isRutin && form.recurrence_type === 'monthly';
     const isRutinTahunan = isRutin && form.recurrence_type === 'yearly';
-    const isRutinHarian = isRutin && form.recurrence_type === 'daily';
 
-    // Tentukan apakah subtask wajib
     const isSubtaskRequired = isProyek || isRutinMingguan || isRutinBulanan || isRutinTahunan;
 
     if (isSubtaskRequired && filteredSubtasks.length === 0) {
@@ -102,8 +100,18 @@ export default function ProposeTaskPage() {
         return;
     }
 
-    // === VALIDASI TOTAL PORSI ===
+    // === VALIDASI TOTAL PORSI & SETIAP SUBTASK > 0 ===
     if (filteredSubtasks.length > 0) {
+        // 1. Cek setiap subtask memiliki porsi > 0
+        for (const s of filteredSubtasks) {
+            if (!s.porsi || s.porsi <= 0) {
+                setError(`Subtask '${s.judul}' harus memiliki porsi lebih dari 0!`);
+                setLoading(false);
+                return;
+            }
+        }
+        
+        // 2. Cek total porsi
         const totalPorsi = filteredSubtasks.reduce((sum, s) => sum + (s.porsi || 0), 0);
         if (totalPorsi !== 100) {
             setError(`Total porsi subtask harus 100% (saat ini: ${totalPorsi}%)`);
@@ -120,25 +128,25 @@ export default function ProposeTaskPage() {
         
         setSuccess(true);
         setForm({
-      judul_spesifik: '',
-      deskripsi: '',
-      jenis: 'rutin',
-      recurrence_type: 'daily',
-      recurrence_day: '',
-      recurrence_month: '',
-      generate_offset_days: 0,
-      bobot: 3,
-      deadline: '',
-      subtasks: [{ judul: '', porsi: 0 }],
-    });
-      
-    setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
+            judul_spesifik: '',
+            deskripsi: '',
+            jenis: 'rutin',
+            recurrence_type: 'daily',
+            recurrence_day: '',
+            recurrence_month: '',
+            generate_offset_days: 0,
+            bobot: 3,
+            deadline: '',
+            subtasks: [{ judul: '', porsi: 0 }],
+        });
+        
+        setTimeout(() => {
+            router.push('/dashboard');
+        }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Gagal mengajukan tugas. Silakan coba lagi.');
+        setError(err.response?.data?.message || 'Gagal mengajukan tugas. Silakan coba lagi.');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 
