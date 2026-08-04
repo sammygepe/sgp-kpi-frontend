@@ -52,6 +52,13 @@ export default function ProposeTaskPage() {
     }
   }, []);
 
+  // === HITUNG SISA PORSI ===
+  const getRemainingPorsi = () => {
+      const totalPorsi = form.subtasks.reduce((sum, s) => sum + (s.porsi || 0), 0);
+      const remaining = 100 - totalPorsi;
+      return remaining > 0 ? remaining : 0;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -64,10 +71,11 @@ export default function ProposeTaskPage() {
   };
 
   const addSubtask = () => {
-    setForm((prev) => ({
-      ...prev,
-      subtasks: [...prev.subtasks, { judul: '' }],
-    }));
+      const remaining = getRemainingPorsi();
+      setForm((prev) => ({
+          ...prev,
+          subtasks: [...prev.subtasks, { judul: '', porsi: remaining }],
+      }));
   };
 
   const removeSubtask = (index) => {
@@ -393,46 +401,56 @@ export default function ProposeTaskPage() {
 
           {/* Subtasks */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Subtask (Checklist)</label>
-            <p className="text-xs text-gray-500 mb-2">Opsional. Tambahkan langkah-langkah pengerjaan tugas.</p>
-            
-            {form.subtasks.map((subtask, index) => (
-                <div key={index} className="flex gap-2 mb-2 items-center">
-                    <input
-                        type="text"
-                        value={subtask.judul || ''}
-                        onChange={(e) => handleSubtaskChange(index, 'judul', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder={`Langkah ${index + 1}`}
-                    />
-                    <input
-                        type="number"
-                        value={subtask.porsi || 0}
-                        onChange={(e) => handleSubtaskChange(index, 'porsi', parseInt(e.target.value) || 0)}
-                        min="0"
-                        max="100"
-                        className="w-20 px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Porsi"
-                    />
-                    {form.subtasks.length > 1 && (
-                        <button
-                            type="button"
-                            onClick={() => removeSubtask(index)}
-                            className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
-                        >
-                            ✕
-                        </button>
-                    )}
-                </div>
-            ))}
-            
-            <button
-              type="button"
-              onClick={addSubtask}
-              className="text-sm text-blue-600 hover:text-blue-800 transition"
-            >
-              + Tambah Subtask
-            </button>
+              <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Subtask (Checklist)</label>
+                  <span className="text-sm text-gray-500">
+                      Sisa Porsi: <span className="font-bold text-blue-600">{getRemainingPorsi()}%</span>
+                  </span>
+              </div>
+              <p className="text-xs text-gray-500 mb-2">Opsional. Tambahkan langkah-langkah pengerjaan tugas.</p>
+              
+              {form.subtasks.map((subtask, index) => (
+                  <div key={index} className="flex gap-2 mb-2 items-center">
+                      <input
+                          type="text"
+                          value={subtask.judul || ''}
+                          onChange={(e) => handleSubtaskChange(index, 'judul', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder={`Langkah ${index + 1}`}
+                      />
+                      <input
+                          type="number"
+                          value={subtask.porsi || 0}
+                          onChange={(e) => handleSubtaskChange(index, 'porsi', parseInt(e.target.value) || 0)}
+                          min="0"
+                          max="100"
+                          className="w-20 px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Porsi"
+                      />
+                      {form.subtasks.length > 1 && (
+                          <button
+                              type="button"
+                              onClick={() => removeSubtask(index)}
+                              className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
+                          >
+                              ✕
+                          </button>
+                      )}
+                  </div>
+              ))}
+              
+              <button
+                  type="button"
+                  onClick={addSubtask}
+                  disabled={getRemainingPorsi() <= 0}
+                  className={`text-sm transition ${
+                      getRemainingPorsi() <= 0 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-blue-600 hover:text-blue-800'
+                  }`}
+              >
+                  + Tambah Subtask {getRemainingPorsi() <= 0 && '(Porsi habis)'}
+              </button>
           </div>
 
           {/* Submit Button */}
