@@ -168,7 +168,8 @@ export default function ProposeTaskPage() {
     const filteredSubtasks = form.subtasks.filter((s) => s.judul.trim() !== '');
     const editId = sessionStorage.getItem('editDraftId');
     
-    console.log('🔍 editDraftId dari sessionStorage:', editId); // <-- DEBUG
+    console.log('🔍 editDraftId dari sessionStorage:', editId);
+    console.log('🔍 Data yang dikirim:', { ...form, subtasks: filteredSubtasks });
 
     try {
       let response;
@@ -208,6 +209,8 @@ export default function ProposeTaskPage() {
       }, 2000);
     } catch (err) {
       console.error('❌ Error saving draft:', err);
+      console.error('❌ Response data:', err.response?.data);
+      console.error('❌ Response status:', err.response?.status);
       setError(err.response?.data?.message || 'Gagal menyimpan draft.');
     } finally {
       setLoading(false);
