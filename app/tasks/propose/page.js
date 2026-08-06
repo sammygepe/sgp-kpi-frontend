@@ -164,13 +164,25 @@ export default function ProposeTaskPage() {
     setSuccess(false);
 
     const filteredSubtasks = form.subtasks.filter((s) => s.judul.trim() !== '');
+    const editId = sessionStorage.getItem('editDraftId');
 
     try {
-      await api.post('/tasks/propose', {
-        ...form,
-        status: 'draft',
-        subtasks: filteredSubtasks,
-      });
+      let response;
+      if (editId) {
+        // === UPDATE DRAFT YANG SUDAH ADA ===
+        response = await api.put(`/tasks/draft/${editId}`, {
+          ...form,
+          subtasks: filteredSubtasks,
+        });
+        sessionStorage.removeItem('editDraftId');
+      } else {
+        // === BUAT DRAFT BARU ===
+        response = await api.post('/tasks/propose', {
+          ...form,
+          status: 'draft',
+          subtasks: filteredSubtasks,
+        });
+      }
       
       setSuccess(true);
       setForm({
