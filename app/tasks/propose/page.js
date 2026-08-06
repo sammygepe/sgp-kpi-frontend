@@ -169,16 +169,19 @@ export default function ProposeTaskPage() {
     const editId = sessionStorage.getItem('editDraftId');
     
     console.log('🔍 editDraftId dari sessionStorage:', editId);
-    console.log('🔍 Data yang dikirim:', { ...form, subtasks: filteredSubtasks });
+    
+    // === LOG DATA YANG DIKIRIM ===
+    const payload = {
+      ...form,
+      subtasks: filteredSubtasks,
+    };
+    console.log('🔍 Payload yang dikirim:', JSON.stringify(payload, null, 2));
 
     try {
       let response;
       if (editId) {
         console.log('🔍 UPDATE draft dengan ID:', editId);
-        response = await api.put(`/tasks/draft/${editId}`, {
-          ...form,
-          subtasks: filteredSubtasks,
-        });
+        response = await api.put(`/tasks/draft/${editId}`, payload);
         sessionStorage.removeItem('editDraftId');
         sessionStorage.removeItem('editTaskData');
       } else {
@@ -211,6 +214,7 @@ export default function ProposeTaskPage() {
       console.error('❌ Error saving draft:', err);
       console.error('❌ Response data:', err.response?.data);
       console.error('❌ Response status:', err.response?.status);
+      console.error('❌ Response headers:', err.response?.headers);
       setError(err.response?.data?.message || 'Gagal menyimpan draft.');
     } finally {
       setLoading(false);
