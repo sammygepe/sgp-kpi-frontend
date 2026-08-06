@@ -28,7 +28,6 @@ export default function ProposeTaskPage() {
   // === TARUH KODE useEffect DI SINI (SETELAH STATE) ===
   // =====================================================
   useEffect(() => {
-    // Cek apakah ada data edit dari sessionStorage
     const editData = sessionStorage.getItem('editTaskData');
     if (editData) {
       try {
@@ -43,9 +42,10 @@ export default function ProposeTaskPage() {
           generate_offset_days: data.generate_offset_days || 0,
           bobot: data.bobot || 3,
           deadline: data.deadline || '',
-          subtasks: data.subtasks?.length > 0 ? data.subtasks : [{ judul: '' }],
+          subtasks: data.subtasks?.length > 0 ? data.subtasks : [{ judul: '', porsi: 0 }],
         });
-        sessionStorage.removeItem('editTaskData');
+        // JANGAN HAPUS editDraftId DI SINI!
+        // sessionStorage.removeItem('editTaskData'); // <-- HAPUS INI DULU
       } catch (e) {
         console.error('Error loading edit data:', e);
       }
@@ -159,24 +159,29 @@ export default function ProposeTaskPage() {
   };
 
   const handleSaveDraft = async () => {
+    console.log('🔍 handleSaveDraft dipanggil');
+    
     setLoading(true);
     setError('');
     setSuccess(false);
 
     const filteredSubtasks = form.subtasks.filter((s) => s.judul.trim() !== '');
     const editId = sessionStorage.getItem('editDraftId');
+    
+    console.log('🔍 editDraftId dari sessionStorage:', editId); // <-- DEBUG
 
     try {
       let response;
       if (editId) {
-        // === UPDATE DRAFT YANG SUDAH ADA ===
+        console.log('🔍 UPDATE draft dengan ID:', editId);
         response = await api.put(`/tasks/draft/${editId}`, {
           ...form,
           subtasks: filteredSubtasks,
         });
         sessionStorage.removeItem('editDraftId');
+        sessionStorage.removeItem('editTaskData');
       } else {
-        // === BUAT DRAFT BARU ===
+        console.log('🔍 BUAT draft baru');
         response = await api.post('/tasks/propose', {
           ...form,
           status: 'draft',
@@ -202,6 +207,7 @@ export default function ProposeTaskPage() {
         router.push('/dashboard');
       }, 2000);
     } catch (err) {
+      console.error('❌ Error saving draft:', err);
       setError(err.response?.data?.message || 'Gagal menyimpan draft.');
     } finally {
       setLoading(false);

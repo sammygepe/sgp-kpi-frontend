@@ -271,6 +271,8 @@ export default function DashboardPage() {
                     {task.status === 'draft' && (
                       <button
                         onClick={() => {
+                          console.log('🔍 Menyimpan draft ID:', task.id); // <-- DEBUG
+                          sessionStorage.setItem('editDraftId', task.id);
                           sessionStorage.setItem('editTaskData', JSON.stringify({
                             judul_spesifik: task.judul_spesifik,
                             deskripsi: task.deskripsi,
