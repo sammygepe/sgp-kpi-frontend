@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Navbar from '@/components/Navbar';
+import { useSearchParams } from 'next/navigation';
 
 export default function AtasanDashboard() {
   const router = useRouter();
@@ -11,6 +12,9 @@ export default function AtasanDashboard() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [filter, setFilter] = useState('all');
+
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
   
   // === STATE MODAL ===
   const [selectedTask, setSelectedTask] = useState(null);
@@ -37,6 +41,11 @@ export default function AtasanDashboard() {
     }
 
     fetchTasks();
+
+    // === RESTORE TAB DARI QUERY PARAMETER ===
+    if (tabParam && ['all', 'proposed', 'submitted', 'completed'].includes(tabParam)) {
+      setFilter(tabParam);
+    }
   }, []);
 
   const fetchTasks = async () => {
