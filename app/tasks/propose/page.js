@@ -152,9 +152,17 @@ export default function ProposeTaskPage() {
             router.push('/usulan?tab=proposed');
         }, 2000);
     } catch (err) {
-        setError(err.response?.data?.message || 'Gagal mengajukan tugas. Silakan coba lagi.');
+      const data = err.response?.data;
+      if (data?.errors) {
+        const messages = Object.entries(data.errors)
+          .map(([field, errs]) => `• ${field}: ${errs.join(', ')}`)
+          .join('\n');
+        setError(`${data.message || 'Validasi gagal'}\n${messages}`);
+      } else {
+        setError(data?.message || 'Gagal mengajukan tugas. Silakan coba lagi.');
+      }
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -213,11 +221,19 @@ export default function ProposeTaskPage() {
     } catch (err) {
       console.error('❌ Error saving draft:', err);
       console.error('❌ Response data:', err.response?.data);
-      console.error('❌ Response status:', err.response?.status);
-      console.error('❌ Response headers:', err.response?.headers);
-      setError(err.response?.data?.message || 'Gagal menyimpan draft.');
+      
+      const data = err.response?.data;
+      
+      if (data?.errors) {
+        const messages = Object.entries(data.errors)
+          .map(([field, errs]) => `• ${field}: ${errs.join(', ')}`)
+          .join('\n');
+        setError(`${data.message || 'Validasi gagal'}\n${messages}`);
+      } else {
+        setError(data?.message || 'Gagal menyimpan draft.');
+      }
     } finally {
-      setLoading(false);
+      setLoading(false); // <-- TAMBAHKAN INI
     }
   };
 
@@ -238,7 +254,7 @@ export default function ProposeTaskPage() {
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Ajukan Tugas Baru</h2>
         
         {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded-md text-sm border border-red-200 mb-4">
+          <div className="bg-red-100 text-red-700 p-3 rounded-md text-sm border border-red-200 mb-4 whitespace-pre-wrap">
             {error}
           </div>
         )}
