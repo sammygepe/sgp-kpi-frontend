@@ -213,41 +213,19 @@ export default function AtasanDashboard() {
         <div className="flex gap-2 mb-6 flex-wrap">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm ${
-              filter === 'all' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
           >
             Semua ({tasks.length})
           </button>
           <button
-            onClick={() => setFilter('proposed')}
-            className={`px-4 py-2 rounded-lg text-sm ${
-              filter === 'proposed' 
-                ? 'bg-yellow-500 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Menunggu Approval ({tasks.filter(t => t.status === 'proposed').length})
-          </button>
-          <button
             onClick={() => setFilter('submitted')}
-            className={`px-4 py-2 rounded-lg text-sm ${
-              filter === 'submitted' 
-                ? 'bg-green-500 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm ${filter === 'submitted' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
           >
             Menunggu Nilai ({tasks.filter(t => t.status === 'submitted').length})
           </button>
           <button
             onClick={() => setFilter('completed')}
-            className={`px-4 py-2 rounded-lg text-sm ${
-              filter === 'completed' 
-                ? 'bg-purple-500 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm ${filter === 'completed' ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
           >
             Selesai ({tasks.filter(t => t.status === 'completed').length})
           </button>

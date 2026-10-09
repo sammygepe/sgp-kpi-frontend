@@ -126,12 +126,11 @@ export default function DashboardPage() {
 
   // === DATA UNTUK TAB ===
   const tabs = [
-    { id: 'draft', label: '📝 Draft', count: draftTasks.length, data: draftTasks },
     { id: 'approaching', label: '📋 Mendekati Deadline', count: approachingTasks.length, data: approachingTasks },
     { id: 'overdue', label: '⚠️ Terlambat', count: overdueTasks.length, data: overdueTasks },
-    { id: 'proposed', label: '⏳ Menunggu Persetujuan', count: proposedTasks.length, data: proposedTasks },
-    { id: 'submitted', label: '⏳ Menunggu Penilaian', count: submittedTasks.length, data: submittedTasks },
     { id: 'future', label: '📅 Akan Datang', count: futureTasks.length, data: futureTasks },
+    { id: 'submitted', label: '⏳ Menunggu Penilaian', count: submittedTasks.length, data: submittedTasks },
+    { id: 'completed', label: '✅ Selesai', count: completedTasks.length, data: completedTasks },
     { id: 'other', label: '📂 Lainnya', count: otherTasks.length, data: otherTasks },
   ];
 

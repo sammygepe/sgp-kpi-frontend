@@ -59,6 +59,32 @@ export default function Navbar({ user, onLogout }) {
     <nav className="bg-white shadow-md px-4 py-3 flex justify-between items-center">
       <h1 className="text-xl font-bold text-gray-800">SGP KPI System</h1>
       <div className="flex items-center gap-4">
+        <button onClick={() => router.push('/dashboard')} className="text-sm text-gray-600 hover:text-blue-600">
+          Dashboard
+        </button>
+        <button onClick={() => router.push('/usulan')} className="text-sm text-gray-600 hover:text-blue-600">
+          Usulan
+        </button>
+        {(user?.role === 'atasan' || user?.role === 'supervisor' || user?.role === 'admin') && (
+          <button onClick={() => router.push('/usulan-bawahan')} className="text-sm text-gray-600 hover:text-blue-600">
+            Usulan Bawahan
+          </button>
+        )}
+        {(user?.role === 'atasan' || user?.role === 'admin') && (
+          <button onClick={() => router.push('/reports')} className="text-sm text-gray-600 hover:text-blue-600">
+            Laporan KPI
+          </button>
+        )}
+        {user?.role === 'admin' && (
+          <button onClick={() => router.push('/admin')} className="text-sm text-gray-600 hover:text-blue-600">
+            Admin
+          </button>
+        )}
+
+        {/* Notifikasi & user + logout tetap di kanan */}
+        ...
+      </div> 
+      <div className="flex items-center gap-4">
         {/* Notifikasi */}
         <div className="relative">
           <button 
