@@ -12,7 +12,6 @@ export default function Navbar({ user, onLogout }) {
 
   useEffect(() => {
     fetchNotifications();
-    // Polling setiap 30 detik
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -55,46 +54,53 @@ export default function Navbar({ user, onLogout }) {
     }
   };
 
+  const isAtasan = user?.role === 'atasan' || user?.role === 'supervisor' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
+
   return (
     <nav className="bg-white shadow-md px-4 py-3 flex justify-between items-center">
+      {/* Kiri: Logo */}
       <h1 className="text-xl font-bold text-gray-800">SGP KPI System</h1>
+
+      {/* Tengah: Menu Navigasi */}
       <div className="flex items-center gap-4">
         <button onClick={() => router.push('/dashboard')} className="text-sm text-gray-600 hover:text-blue-600">
           Dashboard
         </button>
         <button onClick={() => router.push('/usulan')} className="text-sm text-gray-600 hover:text-blue-600">
           Usulan
-        </button>        
-        {(user?.role === 'atasan' || user?.role === 'supervisor' || user?.role === 'admin') && (
-          <button onClick={() => router.push('/usulan-bawahan')} className="text-sm text-gray-600 hover:text-blue-600">
-            Usulan Bawahan
-          </button>
-        )}
-        <button
-          onClick={() => router.push('/riwayat')}
-          className="text-sm text-gray-600 hover:text-blue-600"
-        >
+        </button>
+        <button onClick={() => router.push('/riwayat')} className="text-sm text-gray-600 hover:text-blue-600">
           Riwayat KPI
-        </button>             
-        {(user?.role === 'atasan' || user?.role === 'admin') && (
-          <button onClick={() => router.push('/reports')} className="text-sm text-gray-600 hover:text-blue-600">
-            Laporan KPI
-          </button>
-        )}   
-        {user?.role === 'admin' && (
+        </button>
+
+        {isAtasan && (
+          <>
+            <button onClick={() => router.push('/usulan-bawahan')} className="text-sm text-gray-600 hover:text-blue-600">
+              Usulan Bawahan
+            </button>
+            <button onClick={() => router.push('/penilaian')} className="text-sm text-gray-600 hover:text-blue-600">
+              Penilaian
+            </button>
+            <button onClick={() => router.push('/reports')} className="text-sm text-gray-600 hover:text-blue-600">
+              Laporan KPI
+            </button>
+          </>
+        )}
+
+        {isAdmin && (
           <button onClick={() => router.push('/admin')} className="text-sm text-gray-600 hover:text-blue-600">
             Admin
           </button>
         )}
+      </div>
 
-        {/* Notifikasi & user + logout tetap di kanan */}
-        ...
-      </div> 
+      {/* Kanan: Notifikasi + User + Logout */}
       <div className="flex items-center gap-4">
         {/* Notifikasi */}
         <div className="relative">
-          <button 
-            onClick={() => setShowNotifications(!showNotifications)} 
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
             className="relative text-gray-600 hover:text-gray-800 transition"
           >
             🔔
@@ -104,13 +110,13 @@ export default function Navbar({ user, onLogout }) {
               </span>
             )}
           </button>
-          
+
           {showNotifications && (
             <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border z-50 max-h-96 overflow-y-auto">
               <div className="flex justify-between items-center p-3 border-b">
                 <span className="font-semibold text-sm">Notifikasi</span>
                 {unreadCount > 0 && (
-                  <button 
+                  <button
                     onClick={markAllAsRead}
                     className="text-xs text-blue-600 hover:text-blue-800"
                   >
@@ -122,14 +128,16 @@ export default function Navbar({ user, onLogout }) {
                 <p className="p-4 text-gray-500 text-sm">Tidak ada notifikasi.</p>
               ) : (
                 notifications.map((notif) => (
-                  <div 
-                    key={notif.id} 
+                  <div
+                    key={notif.id}
                     onClick={() => handleNotificationClick(notif)}
                     className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!notif.is_read ? 'bg-blue-50' : ''}`}
                   >
                     <p className="text-sm font-medium">{notif.title}</p>
                     <p className="text-xs text-gray-600">{notif.message}</p>
-                    <p className="text-xs text-gray-400 mt-1">{new Date(notif.created_at).toLocaleString('id-ID')}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(notif.created_at).toLocaleString('id-ID')}
+                    </p>
                   </div>
                 ))
               )}
@@ -137,6 +145,7 @@ export default function Navbar({ user, onLogout }) {
           )}
         </div>
 
+        {/* User + Logout */}
         <span className="text-sm text-gray-600">
           {user?.name} ({user?.role})
         </span>
@@ -149,13 +158,4 @@ export default function Navbar({ user, onLogout }) {
       </div>
     </nav>
   );
-
-  {user?.role === 'admin' && (
-    <button
-      onClick={() => router.push('/admin')}
-      className="text-sm text-purple-600 hover:text-purple-800 transition"
-    >
-      🛠️ Admin
-    </button>
-  )}
 }
