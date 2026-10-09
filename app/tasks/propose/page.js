@@ -149,7 +149,7 @@ export default function ProposeTaskPage() {
         });
         
         setTimeout(() => {
-            router.push('/usulan');
+            router.push('/usulan?tab=proposed');
         }, 2000);
     } catch (err) {
         setError(err.response?.data?.message || 'Gagal mengajukan tugas. Silakan coba lagi.');
@@ -208,7 +208,7 @@ export default function ProposeTaskPage() {
       });
       
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push('/usulan?tab=draft');
       }, 2000);
     } catch (err) {
       console.error('❌ Error saving draft:', err);

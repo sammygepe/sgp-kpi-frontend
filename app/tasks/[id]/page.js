@@ -45,7 +45,7 @@ export default function TaskDetailPage() {
   const handleSubmit = async () => {
     try {
       await api.post(`/tasks/${taskId}/submit`);
-      router.push('/dashboard');
+      router.push('/usulan');
     } catch (err) {
       console.error('Error submitting task:', err);
     }

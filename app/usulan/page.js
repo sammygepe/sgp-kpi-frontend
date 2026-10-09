@@ -1,9 +1,11 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Navbar from '@/components/Navbar';
+import { useSearchParams } from 'next/navigation';
 
 export default function UsulanPage() {
   const router = useRouter();
@@ -11,7 +13,10 @@ export default function UsulanPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('draft');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
 
+  // useEffect #1 — login check & fetch data (TETAP)
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -22,6 +27,13 @@ export default function UsulanPage() {
     if (userData) setUser(JSON.parse(userData));
     fetchTasks();
   }, []);
+
+  // useEffect #2 — baca parameter tab dari URL (TAMBAHAN)
+  useEffect(() => {
+    if (tabParam && ['draft', 'proposed', 'rejected', 'approved'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   const fetchTasks = async () => {
     try {
