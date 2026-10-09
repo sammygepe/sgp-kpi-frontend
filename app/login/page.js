@@ -23,14 +23,8 @@ export default function LoginPage() {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       
-      // Redirect berdasarkan role
-      if (user.role === 'staff') {
-        router.push('/dashboard');
-      } else if (user.role === 'atasan' || user.role === 'supervisor' || user.role === 'admin') {
-        router.push('/dashboard/atasan');
-      } else {
-        router.push('/dashboard');
-      }
+      // Semua role masuk ke /dashboard
+      router.push('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login gagal. Periksa email dan password Anda.');
     } finally {
