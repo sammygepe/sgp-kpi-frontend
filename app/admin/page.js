@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import Navbar from '@/components/Navbar';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -103,30 +104,29 @@ export default function AdminPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} onLogout={handleLogout} />
+        <div className="flex justify-center items-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-white shadow-md px-4 py-3 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-gray-800">🛠️ Admin Panel</h1>
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/dashboard/atasan')} className="text-blue-600 hover:text-blue-800 transition">
-            ← Kembali
-          </button>
-          <span className="text-sm text-gray-600">{user?.name} ({user?.role})</span>
-          <button onClick={handleLogout} className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition">
-            Logout
-          </button>
-        </div>
-      </nav>
+      <Navbar user={user} onLogout={handleLogout} />
 
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-800">👥 Daftar User</h2>
           <button
-            onClick={() => { setEditingUser(null); setForm({ name: '', email: '', password: '', role: 'staff', supervisor_id: '', coordinator_id: '', jabatan: '', nik: '' }); setShowModal(true); }}
+            onClick={() => {
+              setEditingUser(null);
+              setForm({ name: '', email: '', password: '', role: 'staff', supervisor_id: '', coordinator_id: '', jabatan: '', nik: '' });
+              setShowModal(true);
+            }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           >
             + Tambah User
@@ -187,25 +187,73 @@ export default function AdminPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3">
-              <input type="text" name="name" placeholder="Nama" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 border rounded-md" required />
-              <input type="email" name="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3 py-2 border rounded-md" required />
+              <input
+                type="text"
+                name="name"
+                placeholder="Nama"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+                required
+              />
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+                required
+              />
               {!editingUser && (
-                <input type="password" name="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full px-3 py-2 border rounded-md" required />
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Password"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md"
+                  required
+                />
               )}
-              <select name="role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full px-3 py-2 border rounded-md">
+              <select
+                name="role"
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+              >
                 <option value="staff">Staff</option>
                 <option value="atasan">Atasan</option>
                 <option value="supervisor">Supervisor</option>
                 <option value="admin">Admin</option>
               </select>
-              <select name="supervisor_id" value={form.supervisor_id} onChange={(e) => setForm({ ...form, supervisor_id: e.target.value })} className="w-full px-3 py-2 border rounded-md">
+              <select
+                name="supervisor_id"
+                value={form.supervisor_id}
+                onChange={(e) => setForm({ ...form, supervisor_id: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+              >
                 <option value="">Pilih Atasan</option>
                 {users.filter(u => u.role === 'atasan').map(u => (
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
-              <input type="text" name="jabatan" placeholder="Jabatan" value={form.jabatan} onChange={(e) => setForm({ ...form, jabatan: e.target.value })} className="w-full px-3 py-2 border rounded-md" />
-              <input type="text" name="nik" placeholder="NIK" value={form.nik} onChange={(e) => setForm({ ...form, nik: e.target.value })} className="w-full px-3 py-2 border rounded-md" />
+              <input
+                type="text"
+                name="jabatan"
+                placeholder="Jabatan"
+                value={form.jabatan}
+                onChange={(e) => setForm({ ...form, jabatan: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+              />
+              <input
+                type="text"
+                name="nik"
+                placeholder="NIK"
+                value={form.nik}
+                onChange={(e) => setForm({ ...form, nik: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+              />
 
               <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
                 {editingUser ? 'Update' : 'Simpan'}
