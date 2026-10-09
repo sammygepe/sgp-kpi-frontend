@@ -64,7 +64,7 @@ export default function Navbar({ user, onLogout }) {
         </button>
         <button onClick={() => router.push('/usulan')} className="text-sm text-gray-600 hover:text-blue-600">
           Usulan
-        </button>
+        </button>        
         {(user?.role === 'atasan' || user?.role === 'supervisor' || user?.role === 'admin') && (
           <button onClick={() => router.push('/usulan-bawahan')} className="text-sm text-gray-600 hover:text-blue-600">
             Usulan Bawahan
@@ -75,6 +75,12 @@ export default function Navbar({ user, onLogout }) {
             Laporan KPI
           </button>
         )}
+        <button
+          onClick={() => router.push('/riwayat')}
+          className="text-sm text-gray-600 hover:text-blue-600"
+        >
+          Riwayat KPI
+        </button>        
         {user?.role === 'admin' && (
           <button onClick={() => router.push('/admin')} className="text-sm text-gray-600 hover:text-blue-600">
             Admin

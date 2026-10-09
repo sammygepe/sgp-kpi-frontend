@@ -10,8 +10,8 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('approaching');
-  
+  const [activeTab, setActiveTab] = useState('in_progress');
+
   // === STATE MODAL ===
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,55 +82,30 @@ export default function DashboardPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const threeDaysFromNow = new Date(today);
-  threeDaysFromNow.setDate(today.getDate() + 3);
+  // 1. Perlu Dikerjakan = semua tugas 'approved' (belum submit)
+  const inProgressTasks = tasks
+    .filter(t => t.status === 'approved')
+    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
 
-  const approachingTasks = tasks.filter(task => {
-    if (!task.deadline) return false;
-    if (task.status === 'completed' || task.status === 'proposed') return false;
-    const deadline = new Date(task.deadline);
-    deadline.setHours(0, 0, 0, 0);
-    return deadline.getTime() >= today.getTime() && deadline.getTime() <= threeDaysFromNow.getTime();
-  });
+  // 2. Terlambat = dari 'approved', yang deadline-nya sudah lewat
+  const overdueTasks = tasks
+    .filter(t => {
+      if (t.status !== 'approved') return false;
+      if (!t.deadline) return false;
+      const d = new Date(t.deadline);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime() < today.getTime();
+    })
+    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
 
-  const overdueTasks = tasks.filter(task => {
-    if (!task.deadline) return false;
-    if (task.status === 'completed' || task.status === 'proposed') return false;
-    const deadline = new Date(task.deadline);
-    deadline.setHours(0, 0, 0, 0);
-    return deadline.getTime() < today.getTime();
-  });
-
-  const submittedTasks = tasks.filter(task => task.status === 'submitted');  // <-- TAMBAHKAN
-  const completedTasks = tasks.filter(task => task.status === 'completed');  // <-- TAMBAHKAN
-
-  const futureTasks = tasks.filter(task => {
-    if (!task.deadline) return false;
-    if (task.status === 'completed' || task.status === 'proposed' || task.status === 'submitted') return false;
-    const deadline = new Date(task.deadline);
-    deadline.setHours(0, 0, 0, 0);
-    return deadline.getTime() > threeDaysFromNow.getTime();
-  });
-
-  const otherTasks = tasks.filter(task => {
-    if (task.status === 'proposed' || task.status === 'completed' || task.status === 'submitted') return false;
-    if (!task.deadline) return true;
-    const deadline = new Date(task.deadline);
-    deadline.setHours(0, 0, 0, 0);
-    const isApproaching = deadline.getTime() >= today.getTime() && deadline.getTime() <= threeDaysFromNow.getTime();
-    const isOverdue = deadline.getTime() < today.getTime();
-    const isFuture = deadline.getTime() > threeDaysFromNow.getTime();
-    return !isApproaching && !isOverdue && !isFuture;
-  });
+  // 3. Menunggu Penilaian = tugas 'submitted'
+  const submittedTasks = tasks.filter(t => t.status === 'submitted');
 
   // === DATA UNTUK TAB ===
   const tabs = [
-    { id: 'approaching', label: '📋 Mendekati Deadline', count: approachingTasks.length, data: approachingTasks },
+    { id: 'in_progress', label: '🔥 Perlu Dikerjakan', count: inProgressTasks.length, data: inProgressTasks },
     { id: 'overdue', label: '⚠️ Terlambat', count: overdueTasks.length, data: overdueTasks },
-    { id: 'future', label: '📅 Akan Datang', count: futureTasks.length, data: futureTasks },
     { id: 'submitted', label: '⏳ Menunggu Penilaian', count: submittedTasks.length, data: submittedTasks },
-    { id: 'completed', label: '✅ Selesai', count: completedTasks.length, data: completedTasks },
-    { id: 'other', label: '📂 Lainnya', count: otherTasks.length, data: otherTasks },
   ];
 
   // === USEFFECT (FETCH DATA & RESTORE TAB/SCROLL) ===
@@ -218,12 +193,6 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-800">Dashboard Staf</h2>
-          <button
-            onClick={() => router.push('/tasks/propose')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            + Ajukan Tugas
-          </button>
         </div>
 
         <p className="text-gray-600 mb-4">
@@ -260,7 +229,11 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-600">
                       Status: <span className={`font-medium ${getStatusColor(task.status)}`}>{task.status}</span>
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className={`text-sm ${
+                      task.deadline && new Date(task.deadline) < today && task.status === 'approved'
+                        ? 'text-red-600 font-semibold'
+                        : 'text-gray-600'
+                    }`}>
                       Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString('id-ID') : 'N/A'}
                     </p>
                     {task.bobot && <p className="text-sm text-gray-600">Bobot: {task.bobot}</p>}
