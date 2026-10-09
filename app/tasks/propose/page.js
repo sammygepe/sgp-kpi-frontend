@@ -149,7 +149,7 @@ export default function ProposeTaskPage() {
         });
         
         setTimeout(() => {
-            router.push('/dashboard');
+            router.push('/usulan');
         }, 2000);
     } catch (err) {
         setError(err.response?.data?.message || 'Gagal mengajukan tugas. Silakan coba lagi.');
@@ -227,10 +227,10 @@ export default function ProposeTaskPage() {
       <nav className="bg-white shadow-md px-4 py-3 flex justify-between items-center">
         <h1 className="text-xl font-bold text-gray-800">SGP KPI System</h1>
         <button
-          onClick={() => router.push('/dashboard')}
+          onClick={() => router.push('/usulan')}
           className="text-gray-600 hover:text-gray-800 transition"
         >
-          ← Kembali ke Dashboard
+          ← Kembali ke Menu Usulan
         </button>
       </nav>
 

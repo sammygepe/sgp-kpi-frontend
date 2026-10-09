@@ -80,12 +80,12 @@ export default function TaskDetailPage() {
             if (document.referrer && document.referrer.includes(window.location.host)) {
               router.back();
             } else {
-              router.push('/dashboard');
+              router.push('/usulan');
             }
           }}
           className="text-gray-600 hover:text-gray-800 transition"
         >
-          ← Kembali
+          ← Kembali ke Menu Usulan
         </button>
       </nav>
 
