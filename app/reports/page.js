@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import Navbar from '@/components/Navbar';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -77,7 +78,14 @@ export default function ReportsPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} onLogout={handleLogout} />
+        <div className="flex justify-center items-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
+      </div>
+    );
   }
 
   // Data untuk grafik
@@ -114,25 +122,7 @@ export default function ReportsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-white shadow-md px-4 py-3 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-gray-800">📊 Laporan KPI</h1>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push('/dashboard/atasan')}
-            className="text-blue-600 hover:text-blue-800 transition"
-          >
-            ← Kembali
-          </button>
-          <span className="text-sm text-gray-600">{user?.name} ({user?.role})</span>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition"
-          >
-            Logout
-          </button>
-        </div>
-      </nav>
+      <Navbar user={user} onLogout={handleLogout} />
 
       <div className="container mx-auto p-4">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">📊 Laporan KPI Staf</h2>
@@ -197,7 +187,7 @@ export default function ReportsPage() {
             >
               📊 Excel
             </button>
-          </div>          
+          </div>
         </div>
 
         {/* Grafik */}
