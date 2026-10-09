@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import Navbar from '@/components/Navbar';
 
 export default function UsulanBawahanPage() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function UsulanBawahanPage() {
       const response = await api.get('/subordinate-proposals');
       setTasks(response.data.data || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching subordinate proposals:', error);
     } finally {
       setLoading(false);
     }
@@ -44,9 +45,15 @@ export default function UsulanBawahanPage() {
       await api.put(`/tasks/${taskId}/approve`, { status, reason });
       fetchTasks();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error approving:', error);
       alert('Gagal memproses usulan');
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/login');
   };
 
   const getStatusColor = (status) => {
@@ -58,7 +65,14 @@ export default function UsulanBawahanPage() {
     }
   };
 
-  if (loading) return <div className="p-4">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} onLogout={handleLogout} />
+        <div className="p-4">Loading...</div>
+      </div>
+    );
+  }
 
   const proposedTasks = tasks.filter(t => t.status === 'proposed');
   const approvedTasks = tasks.filter(t => t.status === 'approved');
@@ -73,8 +87,10 @@ export default function UsulanBawahanPage() {
   const activeData = tabs.find(t => t.id === activeTab)?.data || [];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="container mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <Navbar user={user} onLogout={handleLogout} />
+
+      <div className="container mx-auto p-4">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">📥 Usulan Bawahan</h2>
 
         <div className="flex gap-2 mb-6 flex-wrap">
@@ -83,7 +99,9 @@ export default function UsulanBawahanPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-lg text-sm ${
-                activeTab === tab.id ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                activeTab === tab.id
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
               {tab.label} ({tab.count})
@@ -121,7 +139,10 @@ export default function UsulanBawahanPage() {
                           onClick={() => {
                             const reason = prompt('Alasan penolakan (wajib):', '');
                             if (reason === null) return;
-                            if (reason.trim() === '') { alert('Alasan wajib diisi!'); return; }
+                            if (reason.trim() === '') {
+                              alert('Alasan wajib diisi!');
+                              return;
+                            }
                             handleApprove(task.id, 'rejected', reason);
                           }}
                           className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"

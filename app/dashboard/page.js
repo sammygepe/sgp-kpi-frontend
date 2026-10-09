@@ -101,9 +101,8 @@ export default function DashboardPage() {
     return deadline.getTime() < today.getTime();
   });
 
-  const proposedTasks = tasks.filter(task => task.status === 'proposed');
-  const submittedTasks = tasks.filter(task => task.status === 'submitted');
-  const draftTasks = tasks.filter(task => task.status === 'draft');
+  const submittedTasks = tasks.filter(task => task.status === 'submitted');  // <-- TAMBAHKAN
+  const completedTasks = tasks.filter(task => task.status === 'completed');  // <-- TAMBAHKAN
 
   const futureTasks = tasks.filter(task => {
     if (!task.deadline) return false;
