@@ -70,17 +70,17 @@ export default function Navbar({ user, onLogout }) {
             Usulan Bawahan
           </button>
         )}
-        {(user?.role === 'atasan' || user?.role === 'admin') && (
-          <button onClick={() => router.push('/reports')} className="text-sm text-gray-600 hover:text-blue-600">
-            Laporan KPI
-          </button>
-        )}
         <button
           onClick={() => router.push('/riwayat')}
           className="text-sm text-gray-600 hover:text-blue-600"
         >
           Riwayat KPI
-        </button>        
+        </button>             
+        {(user?.role === 'atasan' || user?.role === 'admin') && (
+          <button onClick={() => router.push('/reports')} className="text-sm text-gray-600 hover:text-blue-600">
+            Laporan KPI
+          </button>
+        )}   
         {user?.role === 'admin' && (
           <button onClick={() => router.push('/admin')} className="text-sm text-gray-600 hover:text-blue-600">
             Admin
