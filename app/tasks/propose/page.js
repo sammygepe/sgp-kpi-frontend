@@ -20,7 +20,13 @@ export default function ProposeTaskPage() {
     recurrence_month: '',
     generate_offset_days: 0,
     bobot: 3,
-    deadline: '',
+    deadline: (() => {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    })(),
     subtasks: [{ judul: '', porsi: 0 }],
   });
 
@@ -61,7 +67,26 @@ export default function ProposeTaskPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+
+    setForm((prev) => {
+      const updated = { ...prev, [name]: value };
+
+      // Kalau user ubah jenis atau recurrence_type, set default deadline
+      if (name === 'jenis' || name === 'recurrence_type') {
+        const isDailyRutin = updated.jenis === 'rutin' && updated.recurrence_type === 'daily';
+
+        // Kalau rutin harian dan deadline masih kosong, isi default hari ini
+        if (isDailyRutin && !updated.deadline) {
+          const today = new Date();
+          const yyyy = today.getFullYear();
+          const mm = String(today.getMonth() + 1).padStart(2, '0');
+          const dd = String(today.getDate()).padStart(2, '0');
+          updated.deadline = `${yyyy}-${mm}-${dd}`; // format YYYY-MM-DD
+        }
+      }
+
+      return updated;
+    });
   };
 
   const handleSubtaskChange = (index, field, value) => {
