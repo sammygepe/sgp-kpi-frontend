@@ -15,6 +15,9 @@ export default function DashboardPage() {
   // === STATE MODAL ===
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [catatanDraft, setCatatanDraft] = useState('');
+  const [subtasksDraft, setSubtasksDraft] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   // === FUNGSI FETCH TASKS ===
   const fetchTasks = async () => {
@@ -69,6 +72,8 @@ export default function DashboardPage() {
   // === FUNGSI BUKA MODAL ===
   const openModal = (task) => {
     setSelectedTask(task);
+    setCatatanDraft(task.catatan_harian || '');
+    setSubtasksDraft(task.subtasks?.map(s => ({ id: s.id, is_done: s.is_done })) || []);
     setIsModalOpen(true);
   };
 
@@ -76,6 +81,8 @@ export default function DashboardPage() {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedTask(null);
+    setCatatanDraft('');
+    setSubtasksDraft([]);
   };
 
   // === FUNGSI FILTER TUGAS ===
@@ -284,15 +291,6 @@ export default function DashboardPage() {
                         Detail
                       </button>
                     )}
-
-                    {task.status === 'approved' && (
-                      <button
-                        onClick={() => handleSubmit(task.id)}
-                        className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition text-sm"
-                      >
-                        Submit
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
@@ -335,28 +333,15 @@ export default function DashboardPage() {
                 </h4>
                 <textarea
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows="2"
+                  rows="3"
                   placeholder="Tulis catatan hasil kerja hari ini..."
-                  value={selectedTask.catatan_harian || ''}
-                  onChange={async (e) => {
-                    const value = e.target.value;
-                    
-                    // === UPDATE LOCAL STATE ===
-                    updateLocalTask({ catatan_harian: value });
-                    
-                    // === SAVE TO BACKEND ===
-                    try {
-                      await api.put(`/tasks/${selectedTask.id}`, { catatan_harian: value });
-                      // Refresh data task dari backend untuk dapatkan log terbaru
-                      const response = await api.get(`/tasks/${selectedTask.id}`);
-                      updateLocalTask(response.data);
-                    } catch (err) {
-                      console.error('Error saving catatan:', err);
-                    }
-                  }}
+                  value={catatanDraft}
+                  onChange={(e) => setCatatanDraft(e.target.value)}
                   disabled={selectedTask.status === 'submitted' || selectedTask.status === 'completed'}
                 />
-                <p className="text-xs text-gray-500 mt-1">💡 Catatan akan tersimpan otomatis.</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 Perubahan akan tersimpan setelah klik "Simpan Perubahan".
+                </p>
               </div>
 
               {/* ===== SUBTASK CHECKLIST ===== */}
@@ -364,43 +349,39 @@ export default function DashboardPage() {
                 <div className="mt-4">
                   <h4 className="font-semibold text-gray-700 mb-2">✅ Checklist</h4>
                   <ul className="space-y-1">
-                    {selectedTask.subtasks.map((subtask) => (
-                      <li key={subtask.id} className="flex items-center gap-2 justify-between">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={subtask.is_done}
-                            onChange={async () => {
-                              try {
-                                await api.put(`/subtasks/${subtask.id}/toggle`);
-                                // Update local state
-                                const updatedSubtasks = selectedTask.subtasks.map(s =>
-                                  s.id === subtask.id ? { ...s, is_done: !s.is_done } : s
-                                );
-                                // Hitung progress berdasarkan porsi
-                                const totalPorsi = updatedSubtasks.reduce((sum, s) => sum + (s.porsi || 0), 0);
-                                const donePorsi = updatedSubtasks.filter(s => s.is_done).reduce((sum, s) => sum + (s.porsi || 0), 0);
-                                const newProgress = totalPorsi > 0 ? Math.round((donePorsi / totalPorsi) * 100) : 0;
-                                
-                                setSelectedTask(prev => ({
-                                  ...prev,
-                                  subtasks: updatedSubtasks,
-                                  progress: newProgress
-                                }));
-                              } catch (err) {
-                                console.error('Error toggling subtask:', err);
-                              }
-                            }}
-                            className="w-4 h-4 text-blue-600"
-                            disabled={selectedTask.status === 'submitted' || selectedTask.status === 'completed'}
-                          />
-                          <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
-                            {subtask.judul}
-                          </span>
-                        </div>
-                        <span className="text-xs text-gray-400">{subtask.porsi || 0}%</span>
-                      </li>
-                    ))}
+                    {[...selectedTask.subtasks]
+                    .sort((a, b) => a.id - b.id)
+                    .map((subtask) => {
+                      const draft = subtasksDraft.find(s => s.id === subtask.id);
+                      const isDone = draft ? draft.is_done : subtask.is_done;
+
+                      return (
+                        <li key={subtask.id} className="flex items-center gap-2 justify-between">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={isDone}
+                              onChange={(e) => {
+                                const newValue = e.target.checked;
+                                setSubtasksDraft(prev => {
+                                  const existing = prev.find(s => s.id === subtask.id);
+                                  if (existing) {
+                                    return prev.map(s => s.id === subtask.id ? { ...s, is_done: newValue } : s);
+                                  }
+                                  return [...prev, { id: subtask.id, is_done: newValue }];
+                                });
+                              }}
+                              className="w-4 h-4 text-blue-600"
+                              disabled={selectedTask.status === 'submitted' || selectedTask.status === 'completed'}
+                            />
+                            <span className={isDone ? 'line-through text-gray-400' : ''}>
+                              {subtask.judul}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-400">{subtask.porsi || 0}%</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                   {/* Progress Bar */}
                   {selectedTask.subtasks.length > 0 && (
@@ -473,6 +454,35 @@ export default function DashboardPage() {
                 <div className="border-t pt-4 mt-4 flex gap-3 flex-wrap items-center">
                   {selectedTask.status === 'approved' && (
                     <>
+                      {/* Tombol Simpan Perubahan */}
+                      <button
+                        onClick={async () => {
+                          try {
+                            setIsSaving(true);
+                            await api.put(`/tasks/${selectedTask.id}/update-progress`, {
+                              catatan_harian: catatanDraft,
+                              subtasks: subtasksDraft,
+                            });
+                            const response = await api.get(`/tasks/${selectedTask.id}`);
+                            setSelectedTask(response.data);
+                            setCatatanDraft(response.data.catatan_harian || '');
+                            setSubtasksDraft(response.data.subtasks?.map(s => ({ id: s.id, is_done: s.is_done })) || []);
+                            await fetchTasks();
+                            alert('Perubahan berhasil disimpan.');
+                          } catch (err) {
+                            console.error('Error saving progress:', err);
+                            alert('Gagal menyimpan perubahan.');
+                          } finally {
+                            setIsSaving(false);
+                          }
+                        }}
+                        disabled={isSaving}
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {isSaving ? 'Menyimpan...' : '💾 Simpan Perubahan'}
+                      </button>
+
+                      {/* Tombol Submit */}
                       <button
                         onClick={() => handleSubmit(selectedTask.id)}
                         disabled={!canSubmit}
@@ -484,18 +494,12 @@ export default function DashboardPage() {
                       >
                         📤 Submit Tugas
                       </button>
-                      {!canSubmit && (
-                        <p className="text-sm text-red-500">
-                          ⚠️ {!hasSubtask && !noteFilled
-                            ? 'Catatan harian wajib diisi.'
-                            : !allSubtasksDone
-                              ? 'Selesaikan semua checklist.'
-                              : ''}
-                        </p>
-                      )}
                     </>
                   )}
-                  <button onClick={closeModal} className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">
+                  <button
+                    onClick={closeModal}
+                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                  >
                     Tutup
                   </button>
                 </div>
