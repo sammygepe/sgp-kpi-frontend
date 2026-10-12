@@ -128,54 +128,72 @@ export default function ProposeTaskPage() {
     const isSubtaskRequired = isProyek || isRutinMingguan || isRutinBulanan || isRutinTahunan;
 
     if (isSubtaskRequired && filteredSubtasks.length === 0) {
-        setError('Subtask wajib diisi untuk tugas ini!');
-        setLoading(false);
-        return;
+      setError('Subtask wajib diisi untuk tugas ini!');
+      setLoading(false);
+      return;
     }
 
     // === VALIDASI TOTAL PORSI & SETIAP SUBTASK > 0 ===
     if (filteredSubtasks.length > 0) {
-        // 1. Cek setiap subtask memiliki porsi > 0
-        for (const s of filteredSubtasks) {
-            if (!s.porsi || s.porsi <= 0) {
-                setError(`Subtask '${s.judul}' harus memiliki porsi lebih dari 0!`);
-                setLoading(false);
-                return;
-            }
+      for (const s of filteredSubtasks) {
+        if (!s.porsi || s.porsi <= 0) {
+          setError(`Subtask '${s.judul}' harus memiliki porsi lebih dari 0!`);
+          setLoading(false);
+          return;
         }
-        
-        // 2. Cek total porsi
-        const totalPorsi = filteredSubtasks.reduce((sum, s) => sum + (s.porsi || 0), 0);
-        if (totalPorsi !== 100) {
-            setError(`Total porsi subtask harus 100% (saat ini: ${totalPorsi}%)`);
-            setLoading(false);
-            return;
-        }
+      }
+      const totalPorsi = filteredSubtasks.reduce((sum, s) => sum + (s.porsi || 0), 0);
+      if (totalPorsi !== 100) {
+        setError(`Total porsi subtask harus 100% (saat ini: ${totalPorsi}%)`);
+        setLoading(false);
+        return;
+      }
     }
 
     try {
+      const draftId = sessionStorage.getItem('editDraftId');
+
+      if (draftId) {
+        // === KALAU BERASAL DARI DRAFT → UPDATE ROW YANG SAMA ===
+        await api.put(`/tasks/draft/${draftId}`, {
+          ...form,
+          status: 'proposed', // ubah status dari draft ke proposed
+          subtasks: filteredSubtasks,
+        });
+        sessionStorage.removeItem('editDraftId');
+        sessionStorage.removeItem('editTaskData');
+      } else {
+        // === KALAU BUAT BARU → POST BIASA ===
         await api.post('/tasks/propose', {
-            ...form,
-            subtasks: filteredSubtasks,
+          ...form,
+          status: 'proposed',
+          subtasks: filteredSubtasks,
         });
-        
-        setSuccess(true);
-        setForm({
-            judul_spesifik: '',
-            deskripsi: '',
-            jenis: 'rutin',
-            recurrence_type: 'daily',
-            recurrence_day: '',
-            recurrence_month: '',
-            generate_offset_days: 0,
-            bobot: 3,
-            deadline: '',
-            subtasks: [{ judul: '', porsi: 0 }],
-        });
-        
-        setTimeout(() => {
-            router.push('/usulan?tab=proposed');
-        }, 2000);
+      }
+
+      setSuccess(true);
+      setForm({
+        judul_spesifik: '',
+        deskripsi: '',
+        jenis: 'rutin',
+        recurrence_type: 'daily',
+        recurrence_day: '',
+        recurrence_month: '',
+        generate_offset_days: 0,
+        bobot: 3,
+        deadline: (() => {
+          const today = new Date();
+          const yyyy = today.getFullYear();
+          const mm = String(today.getMonth() + 1).padStart(2, '0');
+          const dd = String(today.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}`;
+        })(),
+        subtasks: [{ judul: '', porsi: 0 }],
+      });
+
+      setTimeout(() => {
+        router.push('/usulan?tab=proposed');
+      }, 2000);
     } catch (err) {
       const data = err.response?.data;
       if (data?.errors) {

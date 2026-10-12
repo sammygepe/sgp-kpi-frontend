@@ -122,15 +122,53 @@ export default function UsulanPage() {
           <div className="space-y-3">
             {activeData.map(task => (
               <div key={task.id} className="border p-4 rounded-lg shadow-sm bg-white flex justify-between items-start">
-                <div>
+                <div className="flex-1">
                   <h4 className="font-semibold text-gray-800">{task.judul_spesifik}</h4>
+
+                  {/* Jenis */}
                   <p className="text-sm text-gray-600">
-                    Jenis: {task.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'} | 
+                    {task.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'}
+                    {task.jenis === 'rutin' && task.recurrence_type && (
+                      <>
+                        {' - '}
+                        {task.recurrence_type === 'daily' && 'Harian'}
+                        {task.recurrence_type === 'weekly' && 'Mingguan'}
+                        {task.recurrence_type === 'monthly' && 'Bulanan'}
+                        {task.recurrence_type === 'yearly' && 'Tahunan'}
+                      </>
+                    )}
+                    {' | '}
                     Status: <span className={`font-medium ${getStatusColor(task.status)}`}>{task.status}</span>
                   </p>
+
+                  {/* Deadline */}
                   <p className="text-sm text-gray-600">
                     Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString('id-ID') : 'N/A'}
                   </p>
+
+                  {/* Bobot */}
+                  {task.bobot && (
+                    <p className="text-sm text-gray-600">Bobot: {task.bobot}</p>
+                  )}
+
+                  {/* Progress Checklist (kalau ada subtask) */}
+                  {task.subtasks && task.subtasks.length > 0 && (
+                    <div className="mt-2">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>Progress Checklist</span>
+                        <span className="font-medium">{task.progress || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all"
+                          style={{ width: `${task.progress || 0}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {task.subtasks.filter(s => s.is_done).length}/{task.subtasks.length} checklist selesai
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   {task.status === 'draft' && (
