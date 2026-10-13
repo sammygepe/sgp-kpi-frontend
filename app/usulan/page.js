@@ -1,22 +1,25 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import Navbar from '@/components/Navbar';
-import { useSearchParams } from 'next/navigation';
 
 export default function UsulanPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('draft');
-  const searchParams = useSearchParams();
-  const tabParam = searchParams.get('tab');
 
-  // useEffect #1 — login check & fetch data (TETAP)
+  // === STATE MODAL ===
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // useEffect #1 — login check & fetch data
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -28,7 +31,7 @@ export default function UsulanPage() {
     fetchTasks();
   }, []);
 
-  // useEffect #2 — baca parameter tab dari URL (TAMBAHAN)
+  // useEffect #2 — set tab dari URL
   useEffect(() => {
     if (tabParam && ['draft', 'proposed', 'rejected', 'approved'].includes(tabParam)) {
       setActiveTab(tabParam);
@@ -50,6 +53,16 @@ export default function UsulanPage() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     router.push('/login');
+  };
+
+  const openModal = (task) => {
+    setSelectedTask(task);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedTask(null);
   };
 
   const getStatusColor = (status) => {
@@ -151,7 +164,7 @@ export default function UsulanPage() {
                     <p className="text-sm text-gray-600">Bobot: {task.bobot}</p>
                   )}
 
-                  {/* Progress Checklist (kalau ada subtask) */}
+                  {/* Progress Checklist */}
                   {task.subtasks && task.subtasks.length > 0 && (
                     <div className="mt-2">
                       <div className="flex justify-between text-xs text-gray-500 mb-1">
@@ -170,7 +183,8 @@ export default function UsulanPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2">
+
+                <div className="flex gap-2 ml-4">
                   {task.status === 'draft' && (
                     <button
                       onClick={() => {
@@ -194,6 +208,7 @@ export default function UsulanPage() {
                       ✏️ Lanjutkan Draft
                     </button>
                   )}
+
                   {task.status === 'rejected' && (
                     <button
                       onClick={() => router.push(`/tasks/${task.id}`)}
@@ -202,12 +217,120 @@ export default function UsulanPage() {
                       ✏️ Edit & Ajukan Ulang
                     </button>
                   )}
+
+                  {(task.status === 'proposed' || task.status === 'approved') && (
+                    <button
+                      onClick={() => openModal(task)}
+                      className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition"
+                    >
+                      👁️ Detail
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* ===== MODAL DETAIL (READ-ONLY) ===== */}
+      {isModalOpen && selectedTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center border-b pb-3 mb-4">
+              <h2 className="text-xl font-bold text-gray-800">{selectedTask.judul_spesifik}</h2>
+              <button
+                onClick={closeModal}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="space-y-3">
+              {/* Info 2 Kolom */}
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                <p><strong>Jenis:</strong> {selectedTask.jenis === 'rutin' ? '🔄 Rutin' : '📌 Proyek'}</p>
+                <p><strong>Status:</strong> {selectedTask.status}</p>
+                <p><strong>Deadline:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString('id-ID') : 'N/A'}</p>
+                <p><strong>Bobot:</strong> {selectedTask.bobot}</p>
+                <p><strong>Periode:</strong> {selectedTask.recurrence_type || 'N/A'}</p>
+                <p><strong>Deskripsi:</strong> {selectedTask.deskripsi || 'Tidak ada deskripsi'}</p>
+              </div>
+
+              {/* Subtask List */}
+              {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
+                <div className="mt-3">
+                  <h4 className="font-semibold text-gray-700 mb-1">📋 Subtask</h4>
+                  <ul className="space-y-1">
+                    {[...selectedTask.subtasks].sort((a, b) => a.id - b.id).map((subtask) => (
+                      <li key={subtask.id} className="flex items-center gap-2 justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm ${subtask.is_done ? 'text-green-600' : 'text-gray-400'}`}>
+                            {subtask.is_done ? '✅' : '⬜'}
+                          </span>
+                          <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>
+                            {subtask.judul}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-400">{subtask.porsi || 0}%</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Progress: {selectedTask.progress || 0}% (Berdasarkan porsi)
+                  </p>
+                </div>
+              )}
+
+              {/* Catatan Harian */}
+              {selectedTask.catatan_harian && (
+                <div className="mt-3 p-3 bg-blue-50 rounded-md border border-blue-200">
+                  <h4 className="font-semibold text-blue-700 mb-1">📝 Catatan Harian</h4>
+                  <p className="text-gray-700 whitespace-pre-wrap">{selectedTask.catatan_harian}</p>
+                </div>
+              )}
+
+              {/* Riwayat Aktivitas */}
+              {selectedTask.progress_logs && selectedTask.progress_logs.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-semibold text-gray-700 mb-2">📜 Riwayat Aktivitas</h4>
+                  <div className="space-y-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded-md">
+                    {selectedTask.progress_logs.map((log) => (
+                      <div key={log.id} className="text-xs border-b border-gray-200 py-1 last:border-0">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">
+                            {new Date(log.created_at).toLocaleString('id-ID', {
+                              day: '2-digit', month: 'short', year: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </span>
+                          <span className="text-blue-600">{log.progress !== undefined && `${log.progress}%`}</span>
+                        </div>
+                        <div className="mt-0.5 whitespace-pre-wrap">
+                          <span className="font-medium">{log.description}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t pt-4 mt-4">
+              <button
+                onClick={closeModal}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
